@@ -1,0 +1,380 @@
+<template>
+  <div class="order-detail">
+    <div v-if="loading">Loading order details...</div>
+
+    <div v-else-if="order">
+      <div class="header-section">
+        <div class="header-box">
+          <h1 class="order-number">Order Number: {{ order.orderNumber }}</h1>
+          <p class="order-date">Order Created: {{ formatDate(order.orderDate) }}</p>
+          <p class="order-status">Status: {{ order.status }}</p>
+        </div>
+
+        <div class="shipment-tracking">
+          <h2>Shipment Tracking</h2>
+          <div class="tracking-bar">
+            <div
+              v-for="(step, index) in shipmentSteps"
+              :key="index"
+              class="tracking-step"
+              :class="{ current: step.date }"
+            >
+              <div class="dot"></div>
+              <p class="step-title">{{ step.name }}</p>
+              <p class="step-date">{{ step.date || 'N/A' }}</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="status-box">
+        <h2>Status Timeline</h2>
+        <div class="status-timeline">
+          <div
+            v-for="(step, index) in statusSteps"
+            :key="index"
+            class="timeline-step"
+            :class="{ current: step.name === order.status }"
+          >
+            <div class="timeline-icon"></div>
+            <div class="timeline-content">
+              <p class="status-name">{{ step.name }}</p>
+              <p class="status-date">
+                {{ statusDates[step.name] || 'N/A' }}
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="content-section">
+        <div class="item-summary">
+          <div class="table-header">
+            <span class="col-product">Item Summary</span>
+            <span class="col-qty">QTY</span>
+            <span class="col-price">Price</span>
+            <span class="col-total">Total Price</span>
+          </div>
+          <div class="item-scroll">
+            <div v-for="item in orderItems" :key="item.id" class="item-row">
+              <div class="col-product">
+                <img :src="item.imageUrl" alt="Product Image" class="item-image" />
+                <div>
+                  <h3 class="product-title">{{ item.productName }}</h3>
+                  <p class="product-color">Colour: Blue</p>
+                </div>
+              </div>
+              <div class="col-qty">x{{ item.quantity }}</div>
+              <div class="col-price">${{ item.price.toFixed(2) }}</div>
+              <div class="col-total">${{ item.totalPrice.toFixed(2) }}</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="order-summary">
+          <h2>Order Summary</h2>
+          <p>Subtotal: ${{ subtotal.toFixed(2) }}</p>
+          <p>Delivery Fee: $0.00</p>
+          <!-- <p>Coupon Code Discount: -${{ discountAmount.toFixed(2) }}</p> -->
+          <p class="discount">Coupon Discount(%): -${{ couponDiscount.toFixed(2) }}</p>
+          <!-- <p class="summary-total">Total: ${{ total.toFixed(2) }}</p> -->
+          <p class="summary-total">Total: ${{ amountAfterDiscount.toFixed(2) }}</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</template>
+
+<script setup>
+import { ref, computed, onMounted } from 'vue'
+import { useRoute } from 'vue-router'
+import api from '@/services/api.js'
+
+const route = useRoute()
+const orderId = route.params.orderId
+
+const order = ref(null)
+const orderItems = ref([])
+const loading = ref(true)
+// const couponCode = ref('')
+const discountAmount = ref(0)
+const couponDiscount = ref(0)
+const amountAfterDiscount = ref(0)
+
+const statusSteps = [
+  { name: 'Pending', icon: 'fas fa-hourglass-start' },
+  { name: 'Packing', icon: 'fas fa-box' },
+  { name: 'Shipping', icon: 'fas fa-truck' },
+  { name: 'Delayed', icon: 'fas fa-exclamation-circle' },
+  { name: 'Arrived', icon: 'fas fa-check-circle' },
+  { name: 'Completed', icon: 'fas fa-trophy' },
+  { name: 'Cancelled', icon: 'fas fa-times-circle' },
+]
+
+const shipmentSteps = ref([
+  { name: 'Shipment Date', date: null },
+  { name: 'Expected Date', date: null },
+  { name: 'Delayed Date From', date: null },
+  { name: 'Arrived Date', date: null },
+])
+
+const statusDates = ref({
+  Pending: null,
+  Packing: null,
+  Shipping: null,
+  Delayed: null,
+  Arrived: null,
+  Completed: null,
+  Cancelled: null,
+})
+
+const fetchOrderDetail = async () => {
+  try {
+    const response = await api.get(`/orderitem/${orderId}`)
+    console.log('Order detail response:', response.data)
+
+    if (response.data.length > 0) {
+      const firstOrder = response.data[0]
+
+      // Populate order object
+      order.value = {
+        orderNumber: firstOrder.orderNumber,
+        orderDate: firstOrder.orderDate,
+        status: firstOrder.status,
+      }
+
+      // Populate discount amount & amount after discount
+      couponDiscount.value = firstOrder.couponDiscount ?? 0
+      console.log('Coupon Discount:', firstOrder.couponDiscount)
+
+      amountAfterDiscount.value = firstOrder.amountAfterDiscount ?? 0
+      console.log('Amount After Discount:', amountAfterDiscount.value)
+
+      // Populate order items
+      orderItems.value = response.data.map((item) => ({
+        id: item.id,
+        productId: item.productId,
+        quantity: item.quantity,
+        price: item.price,
+        totalPrice: item.totalPrice,
+        productName: item.productName,
+        imageUrl: item.imageUrl,
+      }))
+
+      // Populate statusDates dynamically from the API response
+      statusDates.value = {
+        Pending: formatDate(firstOrder.orderDate),
+        Packing: formatDate(firstOrder.shipmentDate),
+        Shipping: formatDate(firstOrder.expectedDate),
+        Delayed: formatDate(firstOrder.delayedDateFrom),
+        Arrived: formatDate(firstOrder.arrivedDate),
+        Completed: formatDate(firstOrder.completedDate),
+        Cancelled: formatDate(firstOrder.cancelledDate),
+      }
+      console.log('Status dates:', statusDates.value)
+
+      // Populate shipment steps
+      shipmentSteps.value = [
+        { name: 'Shipment Date', date: formatDate(firstOrder.shipmentDate) },
+        { name: 'Expected Date', date: formatDate(firstOrder.expectedDate) },
+        { name: 'Delayed Date From', date: formatDate(firstOrder.delayedDateFrom) },
+        { name: 'Arrived Date', date: formatDate(firstOrder.arrivedDate) },
+      ]
+    } else {
+      console.error('No order found for the given ID')
+    }
+  } catch (error) {
+    console.error('Error fetching order details:', error)
+    order.value = null
+  } finally {
+    loading.value = false
+  }
+}
+
+const subtotal = computed(() => orderItems.value.reduce((sum, item) => sum + item.totalPrice, 0))
+// const total = computed(() => subtotal.value)
+
+const formatDate = (dateString) => {
+  if (!dateString) return null
+  return new Date(dateString).toLocaleDateString()
+}
+
+onMounted(() => {
+  fetchOrderDetail()
+})
+</script>
+
+<style scoped>
+.order-detail {
+  padding: 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 2rem;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.header-section {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 1rem;
+}
+
+.header-box {
+  flex: 1;
+}
+
+.shipment-tracking {
+  flex: 1;
+}
+
+.tracking-bar {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 1rem;
+  margin-top: 1rem;
+}
+
+.tracking-step {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.tracking-step .dot {
+  width: 15px;
+  height: 15px;
+  background-color: #ddd;
+  border-radius: 50%;
+  position: relative;
+}
+
+.tracking-step.current .dot {
+  background-color: orange;
+  border: 2px solid orange;
+}
+
+.tracking-step .step-title,
+.tracking-step .step-date {
+  font-size: 0.9rem;
+  color: #555;
+}
+
+.tracking-step.current .step-title {
+  font-weight: bold;
+  color: orange;
+}
+
+.status-timeline {
+  display: flex;
+  flex-direction: row;
+  gap: 2rem;
+  padding: 1rem 0;
+}
+
+.timeline-step {
+  min-width: 120px;
+  text-align: center;
+}
+
+.timeline-step.current .timeline-icon {
+  border: 2px solid orange;
+}
+
+.timeline-icon {
+  width: 20px;
+  height: 20px;
+  background-color: #ddd;
+  border-radius: 50%;
+  margin: 0 auto;
+}
+
+.timeline-content {
+  margin-top: 0.5rem;
+}
+
+.content-section {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2rem;
+}
+
+.item-summary {
+  flex: 2;
+  max-height: 400px;
+  width: 100%;
+}
+
+.table-header {
+  display: flex;
+  font-weight: bold;
+  padding: 0.5rem;
+  background-color: #f5f5f5;
+  border-radius: 6px;
+}
+
+.item-scroll {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  margin-top: 1rem;
+}
+
+.item-row {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.col-product {
+  display: flex;
+  align-items: center;
+  flex: 3;
+  gap: 1rem;
+}
+
+.col-qty,
+.col-price,
+.col-total {
+  flex: 1;
+  text-align: center;
+}
+
+.item-image {
+  width: 60px;
+  height: 60px;
+  object-fit: cover;
+  border-radius: 4px;
+}
+
+.product-title {
+  font-weight: 500;
+}
+
+.product-color {
+  font-size: 0.85rem;
+  color: #888;
+}
+
+.order-summary {
+  flex: 1;
+  background-color: #f5f5f5;
+  padding: 1rem;
+  border-radius: 8px;
+  min-width: 250px;
+}
+
+.summary-total {
+  font-weight: bold;
+  color: green;
+  margin-top: 1rem;
+}
+
+.discount {
+  font-weight: bold;
+  color: red;
+  margin-top: 1rem;
+}
+</style>
