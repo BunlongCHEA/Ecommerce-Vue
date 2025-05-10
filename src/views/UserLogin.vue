@@ -1,73 +1,62 @@
 <template>
-  <div class="login-wrapper">
+  <div class="flex flex-col md:flex-row h-screen w-full overflow-hidden">
     <LoadingOverlay :show="loading" />
-    <!-- <div v-if="showMessage" :class="['popup-message', messageType]">
-      {{ messageText }}
-    </div> -->
     <PopupMessage ref="popupRef" />
 
-    <!-- Left side animation src="https://assets3.lottiefiles.com/packages/lf20_jcikwtux.json" -->
-    <div class="animation-column">
-      <div class="animation-wrapper">
+    <!-- Right side animation (2/3 width) with justify-content: right -->
+    <div class="w-full md:w-2/3 flex items-center justify-end overflow-hidden animation-container">
+      <div id="animation-sub" class="w-full h-full flex items-center -ml-4 md:-ml-8">
         <lottie-player
           :src="animationUrl"
           background="transparent"
           speed="1"
           loop
           autoplay
+          class="bg-transparent w-[110%] h-auto max-w-none"
         ></lottie-player>
       </div>
     </div>
 
-    <!-- Right side login form -->
-    <div class="login-section">
-      <div class="login-card">
-        <div class="brand-logo">
-          <img src="@/assets/ecommerce-logo.webp" alt="Ecommerce Logo" />
+    <!-- Left side login form (1/3 width) -->
+    <div id="login" class="w-full md:w-1/3 flex items-center justify-start login-container">
+      <div class="w-[90%] max-w-md bg-white rounded-xl shadow-lg text-center p-6 sm:p-8">
+        <div class="mb-5">
+          <img src="@/assets/ecommerce-logo.webp" alt="Ecommerce Logo" class="w-16 sm:w-24 mx-auto" />
         </div>
-        <h2>Welcome Back!</h2>
-        <p class="subtitle">Log in to your account to continue shopping</p>
-        <form @submit.prevent="handleLogin">
-          <!-- <div class="form-group">
-            <label for="email">Email Address</label>
-            <input
-              type="email"
-              id="email"
-              v-model="email"
-              placeholder="Enter your email"
-              required
-            />
-          </div> -->
-          <div class="form-group">
-            <label for="username">Username</label>
+        <h2 class="text-xl sm:text-2xl mb-2 text-gray-800">Welcome Back!</h2>
+        <p class="text-sm text-gray-500 mb-5">Log in to your account to continue shopping</p>
+        <form @submit.prevent="handleLogin" class="space-y-4">
+          <div class="text-left">
+            <label for="username" class="block mb-1 text-sm text-gray-800">Username</label>
             <input
               type="text"
               id="username"
               v-model="username"
               placeholder="Enter your username"
               required
+              class="w-full p-2.5 border border-gray-300 rounded-md text-sm outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
             />
           </div>
-          <div class="form-group">
-            <label for="password">Password</label>
+          <div class="text-left">
+            <label for="password" class="block mb-1 text-sm text-gray-800">Password</label>
             <input
               type="password"
               id="password"
               v-model="password"
               placeholder="Enter your password"
               required
+              class="w-full p-2.5 border border-gray-300 rounded-md text-sm outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
             />
           </div>
-          <div class="form-actions">
-            <button type="submit" class="login-button">Login</button>
-            <button type="button" @click="navigateToRegister" class="register-button">
+          <div class="flex flex-col gap-2.5 mt-5">
+            <button type="submit" class="py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-md text-base cursor-pointer">Login</button>
+            <button type="button" @click="navigateToRegister" class="py-2.5 bg-gray-600 hover:bg-gray-700 text-white rounded-md text-base cursor-pointer">
               Create Account
             </button>
           </div>
         </form>
-        <!-- <p v-if="errorMessage" class="error-message">{{ errorMessage }}</p> -->
-        <div class="forgot-password">
-          <router-link to="/forgot-password">Forgot your password?</router-link>
+        <div class="mt-4">
+          <router-link to="/forgot-password" class="text-blue-600 hover:underline">Forgot your password?</router-link>
         </div>
       </div>
     </div>
@@ -161,210 +150,61 @@ const navigateToRegister = () => {
 </script>
 
 <style scoped>
-/* Whole body in fit window (no overflow) */
-:global(html, body) {
-  /* margin: 0; */
-  /* padding: 0; */
-  /* height: 100%; */
-  /* overflow-y: scroll; */
-  /* overflow-x: scroll; */
-  background: linear-gradient(to bottom, #0a83ed, #ffffff 50%, #640ce9);
+#animation-sub {
+  justify-content: right;
 }
 
-/* :global(#app) {
-  height: 100%;
-  background: linear-gradient(to bottom, #0a83ed, #ffffff 50%, #640ce9);
-} */
-
-.login-wrapper {
-  display: flex;
-  flex-wrap: nowrap;
-  /* min-height: 100vh; */
-  height: auto;
-  background: linear-gradient(to bottom, #0a83ed, #ffffff 50%, #640ce9);
-}
-
-/* Left animation panel */
-.animation-column {
-  flex: 1.5;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: linear-gradient(to bottom, #0a83ed, #ffffff 50%, #640ce9);
-}
-
-/* .animation-wrapper lottie-player {
-  width: 100%;
-  max-width: 500px;
-} */
-
-/* Right login form */
-.login-section {
-  flex: 1;
-  display: flex;
+#login {
   justify-content: left;
-  align-items: center;
-  background: linear-gradient(to bottom, #0a83ed, #ffffff 50%, #640ce9);
 }
 
-.login-card {
-  width: 100%;
-  max-width: 400px;
-  padding: 30px;
-  background: white;
-  border-radius: 12px;
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
-  text-align: center;
+
+/* Base styles */
+.login-container, .animation-container {
+  transition: all 0.3s ease;
+  /* max-height: 100vh; */
 }
 
-.brand-logo img {
-  width: 100px;
-  margin-bottom: 20px;
+/* Applied styles when body has high-zoom class (JavaScript detection) */
+:global(body.high-zoom) .animation-container {
+  display: none;
 }
 
-/* Pop-Up Message */
-/* .popup-message {
-  position: fixed;
-  top: 20px;
-  left: 50%;
-  transform: translateX(-50%);
-  z-index: 1000;
-  padding: 12px 20px;
-  border-radius: 6px;
-  font-size: 14px;
-  color: white;
-  background-color: #333;
-  opacity: 0.95;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-  animation: fadeSlideDown 0.3s ease-in-out;
+:global(body.high-zoom) .login-container {
+  width: 100% !important;
+  justify-content: center !important;
+  padding: 1rem;
 }
 
-.popup-message.success {
-  background-color: #28a745;
-}
-
-.popup-message.error {
-  background-color: #dc3545;
-}
-
-@keyframes fadeSlideDown {
-  0% {
-    opacity: 0;
-    transform: translateX(-50%) translateY(-20px);
+/* Media query fallback for browsers that support it */
+@media (min-resolution: 1.75dppx), (max-width: 1200px) {
+  .animation-container {
+    display: none;
   }
-  100% {
-    opacity: 1;
-    transform: translateX(-50%) translateY(0);
-  }
-} */
-
-/* Text styles */
-h2 {
-  font-size: 24px;
-  margin-bottom: 10px;
-  color: #333;
-}
-
-.subtitle {
-  font-size: 14px;
-  color: #666;
-  margin-bottom: 20px;
-}
-
-.form-group {
-  margin-bottom: 15px;
-  text-align: left;
-}
-
-label {
-  display: block;
-  margin-bottom: 5px;
-  font-size: 14px;
-  color: #333;
-}
-
-input {
-  width: 100%;
-  padding: 10px;
-  border: 1px solid #ddd;
-  border-radius: 6px;
-  font-size: 14px;
-  outline: none;
-  box-sizing: border-box;
-}
-
-input:focus {
-  border-color: #007bff;
-  box-shadow: 0 0 3px rgba(0, 123, 255, 0.5);
-}
-
-.form-actions {
-  margin-top: 20px;
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-}
-
-/* Button styles */
-.login-button {
-  padding: 10px;
-  background-color: #007bff;
-  color: white;
-  border: none;
-  border-radius: 6px;
-  font-size: 16px;
-  cursor: pointer;
-}
-
-.login-button:hover {
-  background-color: #0056b3;
-}
-
-.register-button {
-  padding: 10px;
-  background-color: #6c757d;
-  color: white;
-  border: none;
-  border-radius: 6px;
-  font-size: 16px;
-  cursor: pointer;
-}
-
-.register-button:hover {
-  background-color: #5a6268;
-}
-
-.error-message {
-  margin-top: 10px;
-  color: red;
-  font-size: 14px;
-}
-
-.forgot-password {
-  margin-top: 15px;
-}
-
-.forgot-password a {
-  color: #007bff;
-  text-decoration: none;
-}
-
-.forgot-password a:hover {
-  text-decoration: underline;
-}
-
-/* Responsive Design */
-@media screen and (max-width: 1200px) {
-  .animation-column {
-    display: none; /* Hide animation on small screens */
-  }
-  .form-column {
-    flex: 1 1 100%;
-  }
-  .login-card {
-    width: 100%;
-    height: 200px;
+  
+  .login-container {
+    width: 100% !important;
+    /* height: auto; */
+    justify-content: center !important;
+    padding: 1rem;
     overflow-y: auto;
+  }
+
+  /* :global(html, body) {
+    overflow-y: scroll;
+  } */
+}
+
+/* Ensure form fits on higher zoom levels */
+@media screen and (min-width: 640px) and (max-height: 700px) {
+  .login-card {
+    padding: 1rem;
+  }
+  
+  .login-container {
+    align-items: flex-start;
+    padding-top: 1rem;
+    padding-bottom: 1rem;
   }
 }
 </style>

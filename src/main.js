@@ -1,10 +1,9 @@
-// import './assets/main.css'
-
 import { createApp } from 'vue'
 import App from './App.vue'
 import router from './router'
 import VueTelInput from 'vue-tel-input'
 import 'vue-tel-input/vue-tel-input.css'
+import './assets/main.css'
 
 const app = createApp(App)
 
