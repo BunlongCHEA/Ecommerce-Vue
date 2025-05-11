@@ -1,146 +1,258 @@
 <template>
-  <div class="app-container">
+  <div class="flex flex-col w-full min-h-screen bg-gray-50 px-4 md:px-6 py-6">
     <LoadingOverlay :show="loading" />
     <PopupMessage ref="popupRef" />
 
-    <!-- Back Button -->
-    <div class="action">
-      <button @click="goBack" class="button">Back to Products</button>
+    <div class="flex justify-between items-center mb-6">
+      <button @click="goBack" class="text-blue-600 hover:text-blue-800 flex items-center gap-1">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+          <path fill-rule="evenodd" d="M9.707 16.707a1 1 0 01-1.414 0l-6-6a1 1 0 010-1.414l6-6a1 1 0 011.414 1.414L5.414 9H17a1 1 0 110 2H5.414l4.293 4.293a1 1 0 010 1.414z" clip-rule="evenodd" />
+        </svg>
+        Back to Products
+      </button>
+      <h1 class="text-2xl font-bold">Shopping Cart</h1>
+      <div class="w-24"></div> <!-- Empty div for flex spacing -->
     </div>
 
-    <h1 class="title">Your Cart</h1>
-
-    <!-- User Locations -->
-    <div>
-      <h2 class="subtitle">Delivery Locations</h2>
-      <div v-if="locations.length > 0" class="location-grid">
-        <div
-          v-for="(loc, i) in locations"
-          :key="i"
-          class="location-box"
-          :class="{ selected: selectedLocation === i }"
-          @click="toggleLocationSelection(i)"
-        >
-          <div class="location-info">
-            <p class="location-title">{{ loc.Address }}</p>
-            <p class="location-detail">Postal Code: {{ loc.PostalCode }}</p>
-            <p class="location-detail">Region: {{ loc.Region }}</p>
-            <p class="location-detail">Country: {{ loc.CountryName }} ({{ loc.CountryCode }})</p>
+    <!-- Main Container with Left and Right Columns -->
+    <div class="flex flex-col lg:flex-row gap-6">
+      <!-- Left Column: Cart Details -->
+      <div class="flex-grow lg:w-2/3">
+        <!-- Selection Sections: Location, Payment, Coupon -->
+        <div class="bg-white rounded-lg shadow-sm mb-6 overflow-hidden">
+          <!-- Selection Tabs -->
+          <div class="flex border-b">
+            <button 
+              class="px-6 py-3 font-medium text-sm transition-colors"
+              :class="activeTab === 'delivery' ? 'border-b-2 border-blue-600 text-blue-600' : 'text-gray-500 hover:text-gray-800'"
+              @click="activeTab = 'delivery'"
+            >
+              Delivery Location
+            </button>
+            <button 
+              class="px-6 py-3 font-medium text-sm transition-colors"
+              :class="activeTab === 'payment' ? 'border-b-2 border-blue-600 text-blue-600' : 'text-gray-500 hover:text-gray-800'"
+              @click="activeTab = 'payment'"
+            >
+              Payment Method
+            </button>
+            <button 
+              class="px-6 py-3 font-medium text-sm transition-colors"
+              :class="activeTab === 'coupon' ? 'border-b-2 border-blue-600 text-blue-600' : 'text-gray-500 hover:text-gray-800'"
+              @click="activeTab = 'coupon'"
+            >
+              Coupons
+            </button>
           </div>
-        </div>
-      </div>
-      <div v-else class="empty-state">No locations available.</div>
-      <div class="action">
-        <button @click="addLocation" class="button primary">Manage Locations</button>
-      </div>
-    </div>
 
-    <!-- Payment Methods Section -->
-    <div>
-      <h2 class="subtitle">Payment Methods</h2>
-      <div v-if="payments.length > 0" class="payment-grid">
-        <div
-          v-for="(payment, index) in payments"
-          :key="index"
-          class="payment-box"
-          :class="{ selected: selectedPayment === index }"
-          @click="togglePaymentSelection(index)"
-        >
-          <div class="payment-icon">
-            <i class="fas fa-credit-card"></i>
-          </div>
-          <div class="payment-info">
-            <p class="payment-method">{{ payment.PaymentMethod }}</p>
-            <p class="payment-detail">Card/Account: {{ payment.AccountOrCardNumber }}</p>
-            <p class="payment-detail">Expiry: {{ formatDate(payment.CardExpireDate) }}</p>
-          </div>
-        </div>
-      </div>
-      <div v-else class="empty-state">No payment methods available.</div>
-
-      <!-- Add Payment Button -->
-      <div class="action">
-        <button @click="addPaymentMethod" class="button primary">Add Payment Method</button>
-      </div>
-    </div>
-
-    <!-- Coupon Section -->
-    <div>
-      <h2 class="subtitle">Available Coupons</h2>
-      <div v-if="coupons.length > 0" class="coupon-grid">
-        <div
-          v-for="(coupon, index) in coupons"
-          :key="index"
-          class="coupon-box"
-          :class="{ selected: selectedCoupon === index }"
-          @click="toggleCouponSelection(index)"
-        >
-          <p><strong>Code:</strong> {{ coupon.CouponCode }}</p>
-          <p><strong>Discount:</strong> {{ coupon.CouponDiscountAmount }}%</p>
-          <p><strong>Description:</strong> {{ coupon.CouponDescription }}</p>
-          <p><strong>Expiry Date:</strong> {{ formatDate(coupon.ExpiryDate) }}</p>
-        </div>
-      </div>
-      <div v-else class="empty-state">No coupons available.</div>
-      <router-link to="/coupon" class="view-more"> View More Coupons </router-link>
-    </div>
-
-    <!-- Cart Items -->
-    <div>
-      <h2 class="subtitle">Cart Items</h2>
-      <div v-if="cart.length === 0" class="empty-cart">Cart is empty.</div>
-      <div v-else>
-        <div class="table-header">
-          <span class="col-product">Item Summary</span>
-          <span class="col-qty">QTY</span>
-          <span class="col-price">Price</span>
-          <span class="col-total">Total Price</span>
-        </div>
-        <div class="item-scroll">
-          <div v-for="(item, index) in cart" :key="index" class="cart-item">
-            <div class="col-product">
-              <img :src="item.imageUrl" alt="Product Image" class="item-image" />
-              <div>
-                <h3 class="product-title">{{ item.name }}</h3>
+          <!-- Delivery Locations (Tab Content) -->
+          <div v-if="activeTab === 'delivery'" class="p-4">
+            <div v-if="locations.length > 0" class="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div
+                v-for="(loc, i) in locations"
+                :key="i"
+                @click="toggleLocationSelection(i)"
+                class="border rounded-lg p-4 cursor-pointer transition-all"
+                :class="selectedLocation === i ? 'border-blue-500 bg-blue-50 shadow-md' : 'border-gray-200 hover:border-blue-300'"
+              >
+                <div class="flex items-start gap-3">
+                  <div class="mt-1">
+                    <div :class="selectedLocation === i ? 'bg-blue-500' : 'bg-gray-200'" class="w-4 h-4 rounded-full flex items-center justify-center">
+                      <div v-if="selectedLocation === i" class="w-2 h-2 bg-white rounded-full"></div>
+                    </div>
+                  </div>
+                  <div>
+                    <p class="font-medium text-gray-800">{{ loc.Address }}</p>
+                    <p class="text-sm text-gray-600 mt-1">Postal Code: {{ loc.PostalCode }}</p>
+                    <p class="text-sm text-gray-600">Region: {{ loc.Region }}</p>
+                    <p class="text-sm text-gray-600">{{ loc.CountryName }} ({{ loc.CountryCode }})</p>
+                  </div>
+                </div>
               </div>
             </div>
-            <div class="col-qty">
-              <button @click="decreaseQuantity(index)" class="button">-</button>
-              {{ item.quantity }}
-              <button @click="increaseQuantity(index)" class="button">+</button>
-              <button @click="removeItem(index)" class="button danger">Remove</button>
+            <div v-else class="text-center py-6 text-gray-500">No locations available</div>
+            <div class="mt-4">
+              <button @click="addLocation" class="w-full text-center py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-md transition-colors">
+                Manage Delivery Locations
+              </button>
             </div>
-            <div class="col-price">
-              ${{ item.price.toFixed(2) }}
-              <span v-if="item.discountAmount" class="discount">(-{{ item.discountAmount }}%)</span>
+          </div>
+
+          <!-- Payment Methods (Tab Content) -->
+          <div v-if="activeTab === 'payment'" class="p-4">
+            <div v-if="payments.length > 0" class="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div
+                v-for="(payment, index) in payments"
+                :key="index"
+                @click="togglePaymentSelection(index)"
+                class="border rounded-lg p-4 cursor-pointer transition-all"
+                :class="selectedPayment === index ? 'border-blue-500 bg-blue-50 shadow-md' : 'border-gray-200 hover:border-blue-300'"
+              >
+                <div class="flex items-start gap-3">
+                  <div class="mt-1">
+                    <div :class="selectedPayment === index ? 'bg-blue-500' : 'bg-gray-200'" class="w-4 h-4 rounded-full flex items-center justify-center">
+                      <div v-if="selectedPayment === index" class="w-2 h-2 bg-white rounded-full"></div>
+                    </div>
+                  </div>
+                  <div>
+                    <p class="font-medium text-gray-800">{{ payment.PaymentMethod }}</p>
+                    <p class="text-sm text-gray-600 mt-1">Card/Account: {{ payment.AccountOrCardNumber }}</p>
+                    <p class="text-sm text-gray-600">Expiry: {{ formatDate(payment.CardExpireDate) }}</p>
+                  </div>
+                </div>
+              </div>
             </div>
-            <div class="col-total">${{ (item.price * item.quantity).toFixed(2) }}</div>
+            <div v-else class="text-center py-6 text-gray-500">No payment methods available</div>
+            <div class="mt-4">
+              <button @click="addPaymentMethod" class="w-full text-center py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-md transition-colors">
+                Add Payment Method
+              </button>
+            </div>
+          </div>
+
+          <!-- Coupons (Tab Content) -->
+          <div v-if="activeTab === 'coupon'" class="p-4">
+            <div v-if="coupons.length > 0" class="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div
+                v-for="(coupon, index) in coupons"
+                :key="index"
+                @click="toggleCouponSelection(index)"
+                class="border rounded-lg p-4 cursor-pointer transition-all"
+                :class="selectedCoupon === index ? 'border-blue-500 bg-blue-50 shadow-md' : 'border-gray-200 hover:border-blue-300'"
+              >
+                <div class="flex items-start gap-3">
+                  <div class="mt-1">
+                    <div :class="selectedCoupon === index ? 'bg-blue-500' : 'bg-gray-200'" class="w-4 h-4 rounded-full flex items-center justify-center">
+                      <div v-if="selectedCoupon === index" class="w-2 h-2 bg-white rounded-full"></div>
+                    </div>
+                  </div>
+                  <div>
+                    <p class="font-medium text-gray-800">{{ coupon.CouponCode }} <span class="text-red-600 font-semibold">-{{ coupon.CouponDiscountAmount }}%</span></p>
+                    <p class="text-sm text-gray-600 mt-1">{{ coupon.CouponDescription }}</p>
+                    <p class="text-sm text-gray-600">Expires: {{ formatDate(coupon.ExpiryDate) }}</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div v-else class="text-center py-6 text-gray-500">No coupons available</div>
+            <div class="mt-4">
+              <router-link to="/coupon" class="block w-full text-center py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-md transition-colors">
+                View More Coupons
+              </router-link>
+            </div>
           </div>
         </div>
-        <button @click="clearCart" class="button danger">Clear All</button>
+
+        <!-- Cart Items Section -->
+        <div class="bg-white rounded-lg shadow-sm">
+          <h2 class="px-6 py-4 border-b font-semibold text-lg text-gray-800">Cart Items</h2>
+          
+          <div v-if="cart.length === 0" class="p-6 text-center text-gray-500">
+            Your cart is empty
+          </div>
+          
+          <div v-else>
+            <!-- Cart Items List -->
+            <div class="divide-y">
+              <div v-for="(item, index) in cart" :key="index" class="flex p-4 hover:bg-gray-50">
+                <!-- Product Image -->
+                <div class="w-24 h-24 flex-shrink-0">
+                  <img :src="item.imageUrl" :alt="item.name" class="w-full h-full object-cover rounded-md" />
+                </div>
+                
+                <!-- Product Details -->
+                <div class="ml-4 flex-grow">
+                  <div class="flex justify-between">
+                    <h3 class="font-medium text-gray-800">{{ item.name }}</h3>
+                    <button @click="removeItem(index)" class="text-gray-400 hover:text-red-500">
+                      <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                        <path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd" />
+                      </svg>
+                    </button>
+                  </div>
+                  
+                  <div class="mt-1 text-sm text-gray-500">
+                    <span>Store: {{ item.storeName }}</span>
+                    <span v-if="item.discountAmount" class="text-red-500 ml-2">(-{{ item.discountAmount }}%)</span>
+                  </div>
+                  
+                  <div class="mt-2 flex justify-between items-center">
+                    <div class="flex items-center">
+                      <button 
+                        @click="decreaseQuantity(index)" 
+                        class="w-8 h-8 rounded-md bg-gray-200 flex items-center justify-center hover:bg-gray-300"
+                      >-</button>
+                      <span class="w-10 text-center">{{ item.quantity }}</span>
+                      <button 
+                        @click="increaseQuantity(index)" 
+                        class="w-8 h-8 rounded-md bg-gray-200 flex items-center justify-center hover:bg-gray-300"
+                      >+</button>
+                    </div>
+                    
+                    <div class="text-right">
+                      <div class="text-sm text-gray-500">${{ item.price.toFixed(2) }} each</div>
+                      <div class="font-semibold text-gray-800">${{ (item.price * item.quantity).toFixed(2) }}</div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+            
+            <!-- Clear Cart Button -->
+            <div class="p-4 border-t">
+              <button 
+                @click="clearCart" 
+                class="text-red-600 hover:text-red-800 text-sm font-medium flex items-center gap-1"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
+                  <path fill-rule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clip-rule="evenodd" />
+                </svg>
+                Clear All Items
+              </button>
+            </div>
+          </div>
+        </div>
       </div>
-    </div>
 
-    <!-- Total -->
-    <div class="total">
-      <h2>Total</h2>
-      <p>Total Items: {{ totalItems }}</p>
-      <p>Total Amount: ${{ totalAmount.toFixed(2) }}</p>
-      <p>Total Amount After Discount: ${{ totalAmountAfterDiscount }}</p>
-      <!-- <p>
-        Total Amount After Discount: $
-        {{
-          isNaN((totalAmount - (discountAmount.value / 100) * totalAmount).toFixed(2))
-            ? totalAmount.toFixed(2)
-            : (totalAmount - (discountAmount.value / 100) * totalAmount).toFixed(2)
-        }}
-      </p> -->
-      <!-- <p>{{ discountAmount.value }}</p> -->
-    </div>
-
-    <!-- Proceed Button -->
-    <div class="action">
-      <button @click="proceedToOrder" class="button primary">Proceed to Order</button>
+      <!-- Right Column: Order Summary -->
+      <div class="lg:w-1/3">
+        <div class="bg-white rounded-lg shadow-sm p-6 sticky top-6">
+          <h2 class="text-xl font-semibold mb-4">Order Summary</h2>
+          
+          <div class="space-y-3 mb-6">
+            <div class="flex justify-between">
+              <span class="text-gray-600">Subtotal</span>
+              <span class="font-medium">${{ totalAmount.toFixed(2) }}</span>
+            </div>
+            
+            <div class="flex justify-between">
+              <span class="text-gray-600">Shipping estimate</span>
+              <span class="font-medium">$0.00</span>
+            </div>
+            
+            <div class="flex justify-between" v-if="selectedCoupon !== null">
+              <span class="text-gray-600">Discount ({{ coupons[selectedCoupon]?.CouponDiscountAmount }}%)</span>
+              <span class="font-medium text-red-600">-${{ calCouponDiscount.toFixed(2) }}</span>
+            </div>
+            
+            <div class="border-t pt-3 flex justify-between font-semibold">
+              <span>Total</span>
+              <span>${{ totalAmountAfterDiscount }}</span>
+            </div>
+          </div>
+          
+          <button 
+            @click="proceedToOrder" 
+            class="w-full py-3 bg-indigo-600 hover:bg-indigo-700 text-white font-medium rounded-md transition-colors"
+          >
+            Proceed to Checkout
+          </button>
+          
+          <div class="mt-4 text-xs text-gray-500 text-center">
+            <p>Total Items: {{ totalItems }}</p>
+          </div>
+        </div>
+      </div>
     </div>
   </div>
 </template>
@@ -167,6 +279,9 @@ const userId = ref(null) // Track logged-in user ID
 const selectedLocation = ref(null) // Track selected location index
 const selectedPayment = ref(null) // Track selected payment index
 const selectedCoupon = ref(null) // Track selected coupon index
+
+// Tab management
+const activeTab = ref('delivery') // Default active tab
 
 // Loading and popup references
 const durationWait = 1000 // 1 second
@@ -313,6 +428,9 @@ console.log('Total Items:', totalItems.value)
 const totalAmountAfterDiscount = computed(() => {
   const discount = couponDiscountAmount.value / 100
   return (totalAmount.value - discount * totalAmount.value).toFixed(2)
+})
+const calCouponDiscount = computed(() => {
+  return (couponDiscountAmount.value / 100) * totalAmount.value
 })
 
 const proceedToOrder = async () => {
@@ -468,181 +586,5 @@ onMounted(() => {
 </script>
 
 <style scoped>
-/* Adjusted layout to fit full screen */
-.app-container {
-  display: flex;
-  flex-direction: column;
-  gap: 1.5rem;
-  padding: 2rem;
-  width: 100%;
-  height: auto;
-  box-sizing: border-box;
-  /* overflow-y: auto; */
-  background: transparent;
-}
 
-/* Payment grid & Location grid & box styles */
-.coupon-grid,
-.location-grid,
-.payment-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-  gap: 1.5rem;
-}
-
-.coupon-box,
-.location-box,
-.payment-box {
-  display: flex;
-  align-items: center;
-  gap: 1rem;
-  padding: 1rem;
-  border: 1px solid #ccc;
-  border-radius: 0.5rem;
-  background-color: #fff;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-  transition:
-    background-color 0.3s,
-    transform 0.2s,
-    box-shadow 0.3s;
-}
-
-.coupon-box:hover,
-.location-box:hover,
-.payment-box:hover {
-  cursor: pointer;
-  background-color: #ffeeba;
-  transform: scale(1.02); /* Slightly enlarge on hover */
-}
-
-/* Selected state styling (remains orange until user selects another box) */
-.selected {
-  border: 2px solid orange; /* Orange border for selected items */
-  box-shadow: 0 0 10px rgba(255, 165, 0, 0.5); /* Subtle orange glow */
-  background-color: #ffeeba; /* Light orange background for selected items */
-}
-
-.payment-icon {
-  font-size: 2rem;
-  color: #007bff;
-}
-
-.location-info,
-.payment-info {
-  display: flex;
-  flex-direction: column;
-  gap: 0.25rem;
-}
-
-.location-title,
-.payment-method {
-  font-size: 1.25rem;
-  font-weight: bold;
-  color: #333;
-}
-
-.location-detail,
-.payment-detail {
-  color: #777;
-}
-
-.empty-state {
-  text-align: center;
-  font-size: 1.25rem;
-  color: #999;
-}
-
-/* Discount Text */
-.discount {
-  color: red;
-  font-size: 14px;
-  margin-left: 5px;
-  font-weight: bold;
-}
-
-/* All Text, Button */
-.title {
-  font-size: 2rem;
-  font-weight: bold;
-  text-align: center;
-  color: #333;
-}
-
-.subtitle {
-  font-size: 1.5rem;
-  font-weight: 600;
-  color: #555;
-}
-
-.button {
-  padding: 0.5rem 1rem;
-  border: none;
-  border-radius: 0.5rem;
-  background-color: #007bff;
-  color: #fff;
-  cursor: pointer;
-}
-
-.button:hover {
-  background-color: #0056b3;
-}
-
-.button.danger {
-  background-color: #dc3545;
-}
-
-.button.danger:hover {
-  background-color: #a71d2a;
-}
-
-.button.primary {
-  background-color: #28a745;
-}
-
-.button.primary:hover {
-  background-color: #218838;
-}
-
-/* Cart Items Table */
-.empty-cart {
-  color: #999;
-  font-style: italic;
-}
-
-.table-header {
-  display: grid;
-  grid-template-columns: 3fr 1fr 1fr 1fr;
-  font-weight: bold;
-  padding: 0.5rem;
-  background-color: #f5f5f5;
-  border-radius: 6px;
-}
-
-.cart-item {
-  display: grid;
-  grid-template-columns: 3fr 1fr 1fr 1fr;
-  align-items: center;
-  gap: 1rem;
-  padding: 0.5rem 0;
-  border-bottom: 1px solid #ddd;
-}
-
-.item-image {
-  width: 60px;
-  height: 60px;
-  object-fit: cover;
-  border-radius: 4px;
-}
-
-.total {
-  font-size: 1.25rem;
-  font-weight: bold;
-  border-top: 1px solid #ccc;
-  padding-top: 1rem;
-  text-align: center;
-}
-
-.action {
-  text-align: center;
-}
 </style>

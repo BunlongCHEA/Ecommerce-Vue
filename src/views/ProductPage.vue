@@ -1,79 +1,83 @@
 <template>
-  <div class="product-page">
+  <div class="flex flex-col w-full min-h-screen bg-gray-50">
     <LoadingOverlay :show="loading" />
     <PopupMessage ref="popupRef" />
 
     <!-- Header Section -->
-    <div class="header">
+    <div class="flex justify-between items-center w-full p-4 bg-gradient-to-r from-blue-600 to-purple-600">
       <!-- Left: Hamburger Menu -->
-      <button class="hamburger-menu" @click="toggleHamburger">☰</button>
+      <button class="text-4xl text-white hover:text-gray-200 transition-colors" @click="toggleHamburger">☰</button>
 
       <!-- Right: Cart and User Profile -->
-      <div class="header-buttons">
+      <div class="flex items-center gap-5">
         <!-- Cart Button -->
-        <button class="cart-button" @click="navigateToCart">
+        <button class="relative text-4xl text-white hover:text-gray-200 transition-colors" @click="navigateToCart">
           <i class="cart-icon">🛒</i>
-          <span v-if="totalQuantity > 0" class="cart-quantity">{{ totalQuantity }}</span>
+          <span 
+            v-if="cartTotalQuantity > 0" 
+            class="absolute -top-1 -right-2 bg-red-500 text-white text-xs w-5 h-5 rounded-full flex items-center justify-center"
+          >{{ cartTotalQuantity }}</span>
         </button>
 
         <!-- User Profile Button -->
-        <button class="profile-button">
-          <img v-if="userImage" :src="userImage" alt="User Profile" class="user-image" />
-          <i v-else class="default-user-icon">👤</i>
+        <button class="text-4xl text-white hover:text-gray-200 transition-colors">
+          <img v-if="userImage" :src="userImage" alt="User Profile" class="w-8 h-8 rounded-full" />
+          <i v-else>👤</i>
         </button>
       </div>
     </div>
 
     <!-- Top: Swiper Section -->
-    <div class="swiper-container">
+    <div class="w-full max-h-[350px] my-[50px] flex justify-center">
       <Swiper
         :modules="[Autoplay, Pagination]"
         :autoplay="{ delay: 5000, disableOnInteraction: false }"
         :pagination="{ clickable: true }"
         loop="true"
-        class="mySwiper"
+        class="w-full max-w-[1000px] rounded-lg overflow-hidden"
       >
         <SwiperSlide v-for="(slide, index) in slides" :key="index">
-          <div class="swiper-slide-content">
-            <img :src="slide.imageUrl" :alt="slide.altText" />
+          <div class="w-full">
+            <img :src="slide.imageUrl" :alt="slide.altText" class="w-full h-auto rounded-lg object-cover" />
           </div>
         </SwiperSlide>
       </Swiper>
     </div>
 
-    <!-- Two-Column Layout -->
-    <div class="main-content">
+    <!-- Main Content -->
+    <div class="flex flex-row gap-5 px-4">
       <!-- Left Side: Filter Section -->
-      <div class="filter-section">
+      <div class="sticky top-0 max-h-[calc(100vh-1rem)] overflow-y-auto w-[200px] shrink-0 bg-white rounded-lg shadow-sm p-4">
         <!-- Search Box -->
-        <div class="filter-box">
-          <h3>Search</h3>
+        <div class="mb-4">
+          <h3 class="text-lg font-medium mb-2">Search</h3>
           <input
             type="text"
             v-model="searchQuery"
             placeholder="Search products..."
             @input="applyFilters"
+            class="w-full p-2 border border-gray-300 rounded-md text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
           />
         </div>
 
         <!-- Category Filter -->
-        <div class="filter-box">
-          <h3>Category</h3>
-          <div v-for="category in paginatedCategories" :key="category.id" class="filter-item">
+        <div class="mb-4">
+          <h3 class="text-lg font-medium mb-2">Category</h3>
+          <div v-for="category in paginatedCategories" :key="category.id" class="flex items-center mb-2">
             <input
               type="checkbox"
               :id="'category-' + category.id"
               :value="category.id"
               v-model="selectedCategories"
               @change="applyFilters"
+              class="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500"
             />
-            <label :for="'category-' + category.id">{{ category.name }}</label>
+            <label :for="'category-' + category.id" class="ml-2 text-sm text-gray-700">{{ category.name }}</label>
           </div>
-          <div class="see-more-container">
+          <div v-if="categoriesPage < totalCategoriesPages" class="mt-1">
             <button
-              v-if="categoriesPage < totalCategoriesPages"
               @click="loadMoreCategories"
-              class="see-more-button"
+              class="px-3 py-1 bg-blue-600 hover:bg-blue-700 text-white text-xs rounded transition-colors"
             >
               See More
             </button>
@@ -81,12 +85,12 @@
         </div>
 
         <!-- Brand (SubCategory) Filter -->
-        <div class="filter-box">
-          <h3>Brand</h3>
+        <div class="mb-4">
+          <h3 class="text-lg font-medium mb-2">Brand</h3>
           <div
             v-for="subCategory in paginatedSubCategories"
             :key="subCategory.id"
-            class="filter-item"
+            class="flex items-center mb-2"
           >
             <input
               type="checkbox"
@@ -94,14 +98,14 @@
               :value="subCategory.id"
               v-model="selectedBrands"
               @change="applyFilters"
+              class="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500"
             />
-            <label :for="'subCategory-' + subCategory.id">{{ subCategory.name }}</label>
+            <label :for="'subCategory-' + subCategory.id" class="ml-2 text-sm text-gray-700">{{ subCategory.name }}</label>
           </div>
-          <div class="see-more-container">
+          <div v-if="subCategoriesPage < totalSubCategoriesPages" class="mt-1">
             <button
-              v-if="subCategoriesPage < totalSubCategoriesPages"
               @click="loadMoreSubCategories"
-              class="see-more-button"
+              class="px-3 py-1 bg-blue-600 hover:bg-blue-700 text-white text-xs rounded transition-colors"
             >
               See More
             </button>
@@ -109,9 +113,9 @@
         </div>
 
         <!-- Price Range Filter -->
-        <div class="filter-box">
-          <h3>Price Range</h3>
-          <div v-for="range in priceRanges" :key="range.label" class="filter-item">
+        <div>
+          <h3 class="text-lg font-medium mb-2">Price Range</h3>
+          <div v-for="range in priceRanges" :key="range.label" class="flex items-center mb-2">
             <input
               type="radio"
               name="priceRange"
@@ -119,51 +123,87 @@
               :value="range"
               v-model="selectedPriceRange"
               @change="applyFilters"
+              class="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 focus:ring-blue-500"
             />
-            <label :for="range.label">{{ range.label }}</label>
+            <label :for="range.label" class="ml-2 text-sm text-gray-700">{{ range.label }}</label>
           </div>
         </div>
       </div>
 
       <!-- Right Side: Product List and Pagination -->
-      <div class="product-section">
-        <div class="product-list">
-          <div v-for="product in paginatedProducts" :key="product.id" class="product-item">
-            <img :src="product.imageUrl" :alt="product.name" />
-            <h4>{{ product.name }}</h4>
-            <p class="store-name">Store: {{ product.storeName }}</p>
-            <p class="price">
-              ${{ product.price - ((product.discountAmount || 0) / 100) * product.price }}
-              <span v-if="product.discountAmount" class="discount"
-                >(-{{ product.discountAmount }}%)</span
-              >
-            </p>
-            <p class="description">{{ product.description }}</p>
-            <div class="quantity-control">
-              <button @click="decreaseQuantity(product)">-</button>
-              <input type="number" v-model="quantities[product.id]" min="0" />
-              <button @click="increaseQuantity(product)">+</button>
+      <div class="flex-1">
+        <!-- Product Grid -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 mb-8">
+          <div 
+            v-for="product in paginatedProducts" 
+            :key="product.id" 
+            class="bg-white rounded-lg shadow-sm overflow-hidden flex flex-col"
+          >
+            <!-- Product Image (Bigger) -->
+            <div class="w-full h-96 overflow-hidden">
+              <img 
+                :src="product.imageUrl" 
+                :alt="product.name" 
+                class="w-full h-full object-cover transition-transform duration-300 hover:scale-105"
+              />
             </div>
-            <div class="sticky-add-cart">
-              <button @click="addToCart(product)" class="add-to-cart-button">Add to Cart</button>
+            
+            <!-- Product Info -->
+            <div class="p-4 flex flex-col h-full">
+              <!-- Product Info and Price in split layout -->
+              <div class="flex justify-between">
+                <!-- Left: Product Info -->
+                <div class="flex-1 pr-2">
+                  <h4 class="text-lg font-medium text-gray-800 mb-1">{{ product.name }}</h4>
+                  <p class="text-xs text-gray-500 mb-1">Store: {{ product.storeName }}</p>
+                  <p class="text-sm text-gray-600 line-clamp-2">{{ product.description }}</p>
+                </div>
+                
+                <!-- Right: Price & Discount -->
+                <div class="flex flex-col items-end ml-2">
+                  <p class="text-lg font-bold text-gray-800">
+                    ${{ product.price - ((product.discountAmount || 0) / 100) * product.price }}
+                  </p>
+                  <span 
+                    v-if="product.discountAmount" 
+                    class="text-xs font-medium text-red-500"
+                  >-{{ product.discountAmount }}%</span>
+                </div>
+              </div>
+              
+              <!-- Quantity Controls -->
+              <div class="flex items-center justify-center gap-2 mt-4 mb-2">
+                <button 
+                  @click="decreaseQuantity(product)"
+                  class="w-8 h-8 rounded-md bg-blue-600 text-white hover:bg-blue-700 flex items-center justify-center"
+                >-</button>
+                <input 
+                  type="number" 
+                  v-model="quantities[product.id]" 
+                  min="0"
+                  class="w-12 h-8 text-center border border-gray-300 rounded-md focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+                />
+                <button 
+                  @click="increaseQuantity(product)"
+                  class="w-8 h-8 rounded-md bg-blue-600 text-white hover:bg-blue-700 flex items-center justify-center"
+                >+</button>
+              </div>
+              
+              <!-- Add to Cart Button with hover effect -->
+              <div class="mt-auto pt-2">
+                <button 
+                  @click="addToCart(product)" 
+                  class="w-full py-2 rounded-md text-white text-sm font-medium transition-all duration-300 relative overflow-hidden add-to-cart-btn"
+                >
+                  <span class="relative z-10">Add to Cart</span>
+                </button>
+              </div>
             </div>
           </div>
         </div>
 
-        <!-- Pagination Controls for Product List -->
-        <!-- <div class="pagination-controls">
-        <label for="itemsPerPage">Items per page:</label>
-        <select id="itemsPerPage" v-model="itemsPerPage" @change="resetPagination">
-          <option value="10">10</option>
-          <option value="20">20</option>
-          <option value="50">50</option>
-        </select>
-        <button :disabled="currentPage === 1" @click="prevPage">Previous</button>
-        <button :disabled="currentPage === totalPages" @click="nextPage">Next</button>
-      </div> -->
-
-        <!-- Pagination Component -->
-        <div class="product-pagination-wrapper">
+        <!-- Pagination -->
+        <div class="flex justify-center mt-8 mb-8">
           <PaginationOption
             :currentPage="currentPage"
             :itemsPerPage="itemsPerPage"
@@ -178,10 +218,6 @@
             "
           />
         </div>
-
-        <!-- <div class="sticky-add-cart">
-          <button @click="addToCart(product)" class="add-to-cart-button">Add to Cart</button>
-        </div> -->
       </div>
     </div>
   </div>
@@ -240,6 +276,7 @@ const selectedPriceRange = ref(priceRanges.value[0]) // Default to "All"
 
 // Quantity State
 const quantities = ref({})
+const cartTotalQuantity = ref(0);
 
 // Vue Router for redirection
 const router = useRouter()
@@ -293,10 +330,6 @@ const fetchData = async () => {
     }
   }
 }
-// Automatically fetch data when the page is loaded
-onMounted(() => {
-  fetchData()
-})
 
 // Computed Property for Filtered Products
 const filteredProducts = computed(() => {
@@ -317,6 +350,10 @@ const filteredProducts = computed(() => {
     return matchesSearchQuery && matchesCategory && matchesSubCategory && matchesPriceRange
   })
 })
+// Apply Filters (Trigger Recalculation)
+const applyFilters = () => {
+  // This method exists to trigger recalculation when filters change.
+}
 
 // BUTTON QTY: Methods to Handle Quantity Changes
 const increaseQuantity = (product) => {
@@ -329,9 +366,17 @@ const decreaseQuantity = (product) => {
 }
 
 // CART: Computed Property for Total Quantity for Cart
-const totalQuantity = computed(() => {
-  return Object.values(quantities.value).reduce((total, quantity) => total + quantity, 0)
-})
+const updateCartTotalQuantity = () => {
+  try {
+    const cart = JSON.parse(localStorage.getItem('cart')) || [];
+    cartTotalQuantity.value = cart.reduce((total, item) => total + item.quantity, 0);
+  } catch (error) {
+    popupRef.value.show('Fail to Add Or Update to Cart', 'error')
+    console.error('Error reading cart from localStorage:', error);
+    cartTotalQuantity.value = 0;
+  }
+};
+
 
 // BUTTON Add to Cart: when user input quantity and click add to cart
 const addToCart = (product) => {
@@ -350,7 +395,6 @@ const addToCart = (product) => {
     cart.push({
       id: product.id,
       name: product.name,
-      // price: product.price,
       price: product.price - (product.discountAmount / 100) * product.price,
       discountAmount: product.discountAmount,
       storeName: product.storeName,
@@ -358,10 +402,14 @@ const addToCart = (product) => {
       quantity: qty,
     })
   }
-
+  // Save updated cart to localStorage
   localStorage.setItem('cart', JSON.stringify(cart))
-  // quantities.value[product.id] = 0 // Reset quantity after adding to cart
-  popupRef.value.show(`${quantities.value[product.id]} ${product.name} added to cart`, 'success') // Show success message
+
+  // Update cart total quantity
+  updateCartTotalQuantity()
+
+  // Show success message
+  popupRef.value.show(`${quantities.value[product.id]} ${product.name} added to cart`, 'success') 
 }
 
 // BUTTON: Navigate to Cart Page
@@ -371,11 +419,6 @@ const navigateToCart = () => {
     loading.value = false
     router.push('/cart')
   }, durationWait)
-}
-
-// Apply Filters (Trigger Recalculation)
-const applyFilters = () => {
-  // This method exists to trigger recalculation when filters change.
 }
 
 // Hamburger Menu Toggle (Placeholder for future functionality)
@@ -428,288 +471,44 @@ const loadMoreSubCategories = () => {
   subCategoriesPage.value++
 }
 // END PAGINATION
+
+// Automatically fetch data when the page is loaded
+onMounted(() => {
+  fetchData()
+
+  // Initialize cart quantity from localStorage
+  updateCartTotalQuantity();
+})
 </script>
 
 <style scoped>
-/* Main container for the page */
-.product-page {
-  display: flex;
-  flex-wrap: nowrap;
-  gap: 20px;
-  padding: 10px;
-  height: auto;
-  width: 100%;
-  box-sizing: border-box;
-  /* overflow-x: auto; */
-  flex-direction: column; /* Add column direction to include swiper */
+/* Custom styles for the Add to Cart button with left-to-right transition */
+.add-to-cart-btn {
+  background-color: #6b7280; /* Gray base color */
 }
 
-/* Header Section */
-.header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  width: 100%;
-  padding: 10px;
-  /* background-color: white; */
-  background: transparent;
-  /* border-bottom: 1px solid #ddd; */
-}
-
-.hamburger-menu {
-  font-size: 38px;
-  border: none;
-  background: none;
-  cursor: pointer;
-  color: white;
-}
-
-.header-buttons {
-  display: flex;
-  align-items: center;
-  gap: 20px;
-}
-
-.cart-button {
-  position: relative;
-  background: none;
-  border: none;
-  cursor: pointer;
-  font-size: 38px;
-}
-
-.cart-quantity {
+.add-to-cart-btn::before {
+  content: '';
   position: absolute;
-  top: -5px;
-  right: -10px;
-  background: red;
-  color: white;
-  border-radius: 50%;
-  width: 20px;
-  height: 20px;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  font-size: 12px;
-}
-
-.profile-button {
-  background: none;
-  border: none;
-  cursor: pointer;
-}
-
-.user-image {
-  width: 32px;
-  height: 32px;
-  border-radius: 50%;
-}
-
-.default-user-icon {
-  font-size: 38px;
-}
-
-/* Swiper Section */
-.swiper-container {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  width: 100%;
-  max-height: 350px;
-  margin-bottom: 80px;
-  margin-top: 50px;
-}
-
-.mySwiper {
-  width: 100%;
-  max-width: 1000px;
-}
-
-.mySwiper img {
-  width: 100%;
-  height: auto;
-  border-radius: 8px;
-  object-fit: contain;
-}
-
-/* Main Content: Filter + Product List */
-.main-content {
-  display: flex;
-  flex-direction: row;
-  gap: 20px;
-  /* Align the filter and product list to the top */
-  align-items: flex-start;
-}
-
-/* Left Side: Filter Section */
-.filter-section {
-  position: sticky;
-  top: 10px;
-  flex: 0 0 100px;
-  /* max-width: 100px; */
-  width: 100%;
-  background: #f5f5f5;
-  padding: 20px;
-  border-radius: 8px;
-  height: fit-content;
-  box-sizing: border-box;
-}
-
-.filter-box {
-  margin-bottom: 20px;
-}
-
-.filter-box h3 {
-  margin-bottom: 10px;
-  font-size: 16px;
-}
-
-.filter-item {
-  display: flex;
-  align-items: center;
-  margin-bottom: 10px;
-}
-
-.filter-item label {
-  margin-left: 8px;
-  font-size: 14px;
-}
-
-/* Filter button - See More */
-.see-more-container {
-  margin-top: 0.5rem;
-}
-
-.see-more-button {
-  padding: 0.4rem 0.8rem;
-  background-color: #007bff;
-  color: white;
-  border: none;
-  border-radius: 4px;
-  font-size: 0.85rem;
-  cursor: pointer;
-}
-
-.see-more-button:hover {
-  background-color: #0056b3;
-}
-/* END: filter button - See More */
-
-/* Right Side: Product List */
-.product-section {
-  display: flex;
-  flex-direction: column;
-  width: 100%;
-}
-
-.product-pagination-wrapper {
-  width: 100%;
-  display: flex;
-  justify-content: center;
-  margin-top: 2rem;
-}
-
-.product-list {
-  display: grid;
-  grid-template-columns: repeat(5, 1fr); /* Fixed 5 columns */
-  gap: 20px;
-  flex-grow: 1;
-  width: 100%;
-  /* min-width: 1250px; */
-  padding-bottom: 40px;
-}
-
-.product-item {
-  background: #ffffff;
-  border: 1px solid #ddd;
-  border-radius: 8px;
-  padding: 20px;
-  text-align: center;
-}
-
-.product-item img {
-  max-width: 100%;
-  height: auto;
-  margin-bottom: 15px;
-}
-
-.product-item h4 {
-  font-size: 18px;
-  margin-bottom: 10px;
-}
-
-.product-item .store-name {
-  font-size: 14px;
-  color: #666;
-  margin-bottom: 5px;
-}
-
-.product-item .price {
-  font-size: 16px;
-  font-weight: bold;
-  margin-bottom: 10px;
-}
-
-.product-item .price .discount {
-  color: red;
-  font-size: 14px;
-  margin-left: 5px;
-}
-
-.product-item .description {
-  font-size: 14px;
-  color: #666;
-  margin-bottom: 15px;
-}
-
-.quantity-control {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  justify-content: center;
-}
-
-.quantity-control button {
-  background: #007bff;
-  color: white;
-  border: none;
-  border-radius: 4px;
-  padding: 5px 10px;
-  font-size: 16px;
-  cursor: pointer;
-}
-
-.quantity-control button:hover {
-  background: #0056b3;
-}
-
-.quantity-control input {
-  width: 50px;
-  text-align: center;
-}
-
-/* BUTTON: Add to cart */
-.sticky-add-cart {
-  position: sticky;
+  top: 0;
+  left: 0;
+  right: 0;
   bottom: 0;
-  background: transparent;
-  padding-top: 10px;
+  background-color: #10b981; /* Green color for hover */
+  width: 0%;
+  transition: width 0.3s ease;
+  z-index: 0;
 }
 
-.add-to-cart-button {
+.add-to-cart-btn:hover::before {
   width: 100%;
-  padding: 10px;
-  background-color: #28a745;
-  color: white;
-  border: none;
-  border-radius: 6px;
-  font-size: 14px;
-  cursor: pointer;
-  margin-top: 10px;
 }
 
-.add-to-cart-button:disabled {
-  background-color: #ccc;
-  cursor: not-allowed;
+/* Line clamp for product description */
+.line-clamp-2 {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
 }
 </style>
