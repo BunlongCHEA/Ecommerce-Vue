@@ -110,7 +110,7 @@ const handleLogin = async () => {
       username: username.value,
       password: password.value,
     })
-    const { token, userId } = response.data // Assuming the API returns both token and userId
+    const { token, userId, role } = response.data // Assuming the API returns both token and userId
     // const token = response.data.token
 
     // Debugging: Log token and userId to the console
@@ -120,11 +120,16 @@ const handleLogin = async () => {
     localStorage.removeItem('authToken') // Clear old token
     localStorage.setItem('authToken', token) // Save new token
     localStorage.setItem('userId', userId)
+    localStorage.setItem('role', role) // Save user role
     document.cookie = `userId=${userId}; path=/; max-age=86400` // Cookie valid for 1 day
+    document.cookie = `role=${role}; path=/; max-age=86400` // Cookie valid for 1 day
 
     // Debugging: Verify values saved in localStorage  && cookie
-    console.log('Saved Token in localStorage:', localStorage.getItem('authToken'))
-    console.log('Saved User ID in localStorage:', localStorage.getItem('userId'))
+    console.log('Saved LocalStorage:', {
+      authToken: localStorage.getItem('authToken'),
+      userId: localStorage.getItem('userId'),
+      role: localStorage.getItem('role'),
+    })
     console.log('Saved Cookie:', document.cookie)
 
     setAuthToken(token) // Set the token in the API service

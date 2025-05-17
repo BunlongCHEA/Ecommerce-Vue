@@ -1,103 +1,193 @@
 <template>
-  <div class="app-container">
+  <div class="min-h-screen w-full flex flex-col overflow-auto bg-white text-gray-800">
     <LoadingOverlay :show="loading" />
     <PopupMessage ref="popupRef" />
 
-    <!-- Progress Bar -->
-    <div class="progress-bar">
-      <div
-        v-for="(step, index) in steps"
-        :key="index"
-        :class="['progress-step', { active: currentStep === index }]"
-        @click="goToStep(index)"
+    <!-- <div class="flex justify-between items-center px-4 py-4 bg-transparent text-white shadow backdrop-blur-md">
+      <button
+        @click="$router.push('/cart')"
+        class="flex items-center gap-2 font-medium text-black hover:bg-gradient-to-r from-gray-300/50 to-gray-500/50 px-4 py-2 rounded-md transition"
       >
-        {{ step }}
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+          <path fill-rule="evenodd" d="M9.707 16.707a1 1 0 01-1.414 0L2.293 10l6-6a1 1 0 011.414 1.414L4.414 10l5.293 5.293a1 1 0 010 1.414z" clip-rule="evenodd" />
+        </svg>
+        Back to Cart
+      </button>
+      <h1 class="text-2xl font-bold text-black">Manage Payment</h1>
+      <div class="w-24"></div>
+    </div> -->
+
+    <!-- Back Button & Title Component -->
+    <BackButton
+      :buttonLabel="'Back to Cart'"
+      :destination="'/cart'"
+      :defaultTitle="'Manage Payment'"
+      :waitDuration="durationWait"
+    ></BackButton>
+
+    <!-- Progress Bar -->
+    <div class="w-full bg-white py-6 flex justify-center">
+      <div class="w-full max-w-4xl bg-gray-50 border rounded-lg p-4">
+        <div class="flex items-center justify-between">
+          <div
+            v-for="(step, index) in steps"
+            :key="index"
+            class="relative flex items-center flex-1"
+          >
+            <!-- Step Circle -->
+            <div
+              class="flex flex-col items-center gap-2 cursor-pointer"
+              @click="goToStep(index)"
+            >
+              <div
+                class="w-10 h-10 flex items-center justify-center rounded-full border-2 transition-all duration-300"
+                :class="{
+                  'bg-indigo-600 text-white border-indigo-600': currentStep >= index,
+                  'bg-white text-indigo-600 border-indigo-600': currentStep < index,
+                }"
+              >
+                <!-- Step Number or Checkmark -->
+                <template v-if="currentStep > index">
+                  <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                    <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 00-1.414 0L8 12.586 4.707 9.293a1 1 0 10-1.414 1.414l4 4a1 1 0 001.414 0l8-8a1 1 0 000-1.414z" clip-rule="evenodd" />
+                  </svg>
+                </template>
+                <template v-else>
+                  {{ index + 1 }}
+                </template>
+              </div>
+              <!-- Step Label -->
+              <span
+                class="text-sm font-medium text-center"
+                :class="{ 'text-indigo-600': currentStep === index, 'text-gray-500': currentStep !== index }"
+              >
+                {{ step }}
+              </span>
+            </div>
+
+            <!-- Connector -->
+            <div
+              v-if="index < steps.length - 1 || index === steps.length - 1"
+              class="flex-grow h-0.5 mx-2"
+              :class="{ 'bg-indigo-600': currentStep > index, 'bg-gray-300': currentStep <= index }"
+            ></div>
+          </div>
+        </div>
       </div>
     </div>
 
     <!-- Step Content -->
-    <div class="step-content">
+    <div class="flex-grow flex flex-col items-center bg-white">
       <!-- Step 1: View Payment -->
-      <div v-if="currentStep === 0">
-        <h2 class="subtitle">Your Payment Methods</h2>
-        <div v-if="payments.length > 0" class="payment-list">
-          <div v-for="(payment, index) in payments" :key="index" class="payment-box">
-            <div class="payment-info">
-              <p class="payment-method">{{ payment.PaymentMethod }}</p>
-              <p class="payment-detail">Bank: {{ payment.BankName }}</p>
-              <p class="payment-detail">Card/Account: {{ payment.AccountOrCardNumber }}</p>
-              <p class="payment-detail">Expiry: {{ formatDate(payment.CardExpireDate) }}</p>
+      <div v-if="currentStep === 0" class="w-full max-w-3xl">
+        <h2 class="text-lg font-medium text-gray-800 mb-4">Your Payment Methods</h2>
+        <div v-if="payments.length > 0" class="space-y-4">
+          <div
+            v-for="(payment, index) in payments"
+            :key="index"
+            class="p-4 border border-gray-200 rounded-lg shadow-sm flex justify-between items-center bg-gradient-to-r from-blue-500 to-blue-500 hover:from-purple-500 hover:to-purple-600 transition duration-300 text-white"
+          >
+            <div>
+              <p class="font-medium">{{ payment.PaymentMethod }}</p>
+              <p class="text-sm">Bank: {{ payment.BankName }}</p>
+              <p class="text-sm">Card/Account: {{ payment.AccountOrCardNumber }}</p>
+              <p class="text-sm">Expiry: {{ formatDate(payment.CardExpireDate) }}</p>
             </div>
-            <div class="button-group">
-              <button @click="editPayment(index)" class="button secondary">Edit</button>
-              <button @click="deletePayment(index)" class="button danger">Delete</button>
+            <div class="flex space-x-2">
+              <button
+                @click="editPayment(index)"
+                class="px-4 py-2 text-sm font-medium text-white border border-white rounded-md hover:bg-blue-50 hover:text-blue-600"
+              >
+                Edit
+              </button>
+              <button
+                @click="deletePayment(index)"
+                class="px-4 py-2 text-sm font-medium text-white border border-white rounded-md hover:bg-red-50 hover:text-red-600"
+              >
+                Delete
+              </button>
             </div>
           </div>
         </div>
-        <div v-else class="empty-state">No payment methods available.</div>
-        <div class="action">
-          <button @click="goToStep(1)" class="button primary">Add Payment Method</button>
+        <div v-else class="text-center text-gray-500 py-6">
+          No payment methods available.
+        </div>
+        <div class="mt-6">
+          <button
+            @click="goToStep(1)"
+            class="w-full px-6 py-3 bg-green-600 text-white font-medium rounded-md hover:bg-green-700 transition-colors"
+          >
+            Add Payment Method
+          </button>
         </div>
       </div>
 
       <!-- Step 2: Add Payment -->
-      <div v-if="currentStep === 1">
-        <h2 class="subtitle">Add a New Payment Method</h2>
-        <form @submit.prevent="savePaymentData" class="payment-form">
-          <div class="form-group">
-            <label for="paymentMethod">Payment Method</label>
-            <select id="paymentMethod" v-model="newPaymentMethod" required>
+      <div v-if="currentStep === 1" class="w-full max-w-3xl">
+        <h2 class="text-lg font-medium text-gray-800 mb-4">Add a New Payment Method</h2>
+        <form @submit.prevent="savePaymentData" class="space-y-4">
+          <div class="flex flex-col gap-2">
+            <label for="paymentMethod" class="text-sm font-medium text-gray-800">Payment Method</label>
+            <select id="paymentMethod" v-model="newPaymentMethod" required class="px-4 py-2 border rounded-md">
               <option disabled value="">Select a payment method</option>
               <option value="Credit Card">Credit Card</option>
               <option value="PayPal">PayPal</option>
               <option value="Bank Transfer">Bank Transfer</option>
             </select>
           </div>
-          <div class="form-group">
-            <label for="bankName">Bank Name</label>
-            <select id="bankName" v-model="newBankName" required>
+          <div class="flex flex-col gap-2">
+            <label for="bankName" class="text-sm font-medium text-gray-800">Bank Name</label>
+            <select id="bankName" v-model="newBankName" required class="px-4 py-2 border rounded-md">
               <option disabled value="">Select a bank</option>
               <option v-for="(bank, index) in bankOptions" :key="index" :value="bank">
                 {{ bank }}
               </option>
             </select>
           </div>
-          <div class="form-group">
-            <label for="accountOrCardNumber">Card/Account Number</label>
+          <div class="flex flex-col gap-2">
+            <label for="accountOrCardNumber" class="text-sm font-medium text-gray-800">Card/Account Number</label>
             <input
               type="text"
               id="accountOrCardNumber"
               v-model="newAccountOrCardNumber"
               placeholder="Enter card/account number"
               required
+              class="px-4 py-2 border rounded-md"
             />
           </div>
-          <div class="form-group">
-            <label for="cardExpireDate">Expiry Date</label>
+          <div class="flex flex-col gap-2">
+            <label for="cardExpireDate" class="text-sm font-medium text-gray-800">Expiry Date</label>
             <input
               type="date"
               id="cardExpireDate"
               v-model="newCardExpireDate"
               placeholder="yyyy-MM-dd"
               required
+              class="px-4 py-2 border rounded-md"
             />
           </div>
-          <button type="submit" class="button primary">Save Payment Method</button>
+          <button type="submit" class="w-full px-6 py-3 bg-green-600 text-white font-medium rounded-md hover:bg-green-700 transition-colors">
+            Save Payment Method
+          </button>
         </form>
       </div>
 
       <!-- Step 3: Final Payment -->
-      <div v-if="currentStep === 2">
-        <h2 class="subtitle">Confirm Your Payment</h2>
-        <div class="payment-summary">
-          <p><strong>Payment Method:</strong> {{ newPaymentMethod }}</p>
-          <p><strong>Bank Name:</strong> {{ newBankName }}</p>
-          <p><strong>Card/Account:</strong> {{ newAccountOrCardNumber }}</p>
-          <p><strong>Expiry:</strong> {{ newCardExpireDate }}</p>
+      <div v-if="currentStep === 2" class="w-full max-w-3xl">
+        <h2 class="text-lg font-medium text-gray-800 mb-4">Confirm Your Payment</h2>
+        <div class="p-4 border border-gray-200 rounded-lg shadow-sm bg-white">
+          <p class="text-sm font-medium text-gray-800"><strong>Payment Method:</strong> {{ newPaymentMethod }}</p>
+          <p class="text-sm font-medium text-gray-800"><strong>Bank Name:</strong> {{ newBankName }}</p>
+          <p class="text-sm font-medium text-gray-800"><strong>Card/Account:</strong> {{ newAccountOrCardNumber }}</p>
+          <p class="text-sm font-medium text-gray-800"><strong>Expiry:</strong> {{ newCardExpireDate }}</p>
         </div>
-        <div class="action">
-          <!-- <button @click="goToStep(0)" class="button primary">Finish</button> -->
-          <button @click="confirmPayment" class="button primary">Finish</button>
+        <div class="mt-6">
+          <button
+            @click="confirmPayment"
+            class="w-full px-6 py-3 bg-green-600 text-white font-medium rounded-md hover:bg-green-700 transition-colors"
+          >
+            Finish
+          </button>
         </div>
       </div>
     </div>
@@ -109,17 +199,23 @@ import { ref, onMounted } from 'vue'
 import api from '@/services/api'
 import { useRouter } from 'vue-router'
 
-// Components
 import LoadingOverlay from '@/components/LoadingOverlay.vue'
 import PopupMessage from '@/components/PopupMessage.vue'
+import BackButton from '@/components/BackButton.vue'
+import { useFetchUserId } from '@/composables/useFetchUserId.js'
 
+// Data
+// Use the composable for fetching user ID
+const { userId, fetchUserId } = useFetchUserId()
+
+const durationWait = 1000 // Default wait time is 1 second
 const loading = ref(false)
 const popupRef = ref(null)
 
 const steps = ['View Payment', 'Add Payment', 'Final Payment']
 const currentStep = ref(0)
 const payments = ref([])
-const userId = ref(null)
+// const userId = ref(null)
 const editingIndex = ref(null) // Track the index of the payment being edited
 
 // Fields for creating a new payment
@@ -154,23 +250,23 @@ const fetchPayments = async () => {
 }
 
 // Fetch the logged-in user's ID from localStorage or cookies
-const fetchUserId = () => {
-  try {
-    // First, attempt to retrieve userId from localStorage
-    const storedUserId = localStorage.getItem('userId')
-    userId.value = storedUserId
-    console.log('Logged-in User ID (from localStorage):', userId.value)
+// const fetchUserId = () => {
+//   try {
+//     // First, attempt to retrieve userId from localStorage
+//     const storedUserId = localStorage.getItem('userId')
+//     userId.value = storedUserId
+//     console.log('Logged-in User ID (from localStorage):', userId.value)
 
-    // If not found in localStorage, attempt to retrieve it from cookies
-    const cookies = document.cookie.split('; ')
-    console.log('Cookies:', cookies)
-    const userIdCookie = cookies.find((row) => row.startsWith('userId='))
-    userId.value = userIdCookie.split('=')[1]
-    console.log('Logged-in User ID (from cookies):', userId.value)
-  } catch (error) {
-    console.error('Error retrieving User ID:', error)
-  }
-}
+//     // If not found in localStorage, attempt to retrieve it from cookies
+//     const cookies = document.cookie.split('; ')
+//     console.log('Cookies:', cookies)
+//     const userIdCookie = cookies.find((row) => row.startsWith('userId='))
+//     userId.value = userIdCookie.split('=')[1]
+//     console.log('Logged-in User ID (from cookies):', userId.value)
+//   } catch (error) {
+//     console.error('Error retrieving User ID:', error)
+//   }
+// }
 
 // Format date to YYYY-MM-DD
 const formatDate = (dateString) => {
@@ -352,178 +448,5 @@ onMounted(async () => {
 </script>
 
 <style scoped>
-/* General container styles */
-.app-container {
-  display: flex;
-  flex-direction: column;
-  gap: 1.5rem;
-  padding: 2rem;
-  width: 100vw;
-  height: auto;
-  box-sizing: border-box;
-  /* overflow-y: auto; */
-  background-color: #f9f9f9;
-}
 
-/* Progress bar styles */
-.progress-bar {
-  display: flex;
-  justify-content: space-between;
-  margin-bottom: 1rem;
-}
-
-.progress-step {
-  flex: 1;
-  text-align: center;
-  padding: 0.5rem;
-  border: 1px solid #ccc;
-  border-radius: 0.5rem;
-  background-color: #e0e0e0;
-  cursor: pointer;
-}
-
-.progress-step.active {
-  background-color: #007bff;
-  color: #fff;
-}
-
-/* Subtitle styles */
-.subtitle {
-  font-size: 1.5rem;
-  font-weight: 600;
-  color: #555;
-}
-
-/* Payment list styles (stacked layout) */
-.payment-list {
-  display: flex;
-  flex-direction: column; /* Stacked layout */
-  gap: 1rem;
-}
-
-.payment-box {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 1rem;
-  border: 1px solid #ccc;
-  border-radius: 0.5rem;
-  background-color: #fff;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-}
-
-.payment-info {
-  flex: 1; /* Take up available space */
-  display: flex;
-  flex-direction: column;
-  gap: 0.25rem;
-}
-
-.payment-method {
-  font-size: 1.25rem;
-  font-weight: bold;
-  color: #333;
-}
-
-.payment-detail {
-  color: #777;
-}
-
-.payment-summary {
-  padding: 1rem;
-  border: 1px solid #ccc;
-  border-radius: 0.5rem;
-  background-color: #fff;
-  color: #333;
-}
-
-/* Form styles */
-.payment-form {
-  display: flex;
-  flex-direction: column;
-  gap: 1rem;
-}
-
-.form-group {
-  display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
-}
-
-.add-bank {
-  display: flex;
-  gap: 0.5rem;
-  margin-top: 0.5rem;
-}
-
-input,
-select {
-  padding: 0.5rem;
-  border: 1px solid #ccc;
-  border-radius: 0.5rem;
-}
-
-input:focus,
-select:focus {
-  border-color: #007bff;
-  outline: none;
-}
-
-/* Action button styles */
-/* .button {
-  padding: 0.5rem 1rem;
-  border: none;
-  border-radius: 0.5rem;
-  background-color: #007bff;
-  color: #fff;
-  cursor: pointer;
-}
-
-.button:hover {
-  background-color: #0056b3;
-} */
-
-.button {
-  padding: 0.5rem 1rem;
-  border: none;
-  border-radius: 0.5rem;
-  cursor: pointer;
-}
-
-.button.primary {
-  background-color: #28a745;
-  color: #fff;
-}
-
-.button.primary:hover {
-  background-color: #218838;
-}
-
-.button.secondary {
-  background-color: #17a2b8;
-  color: #fff;
-}
-
-.button.secondary:hover {
-  background-color: #138496;
-}
-
-.button.danger {
-  background-color: #dc3545;
-  color: #fff;
-}
-
-.button.danger:hover {
-  background-color: #c82333;
-}
-
-/* .button.small {
-  padding: 0.25rem 0.75rem;
-  font-size: 0.875rem;
-  background-color: #17a2b8;
-}
-
-.button.small:hover {
-  background-color: #138496;
-} */
 </style>

@@ -6,9 +6,6 @@ import { RouterView } from 'vue-router'
   <div id="app" class="flex justify-center items-center min-h-screen min-w-screen bg-gradient-to-b from-blue-500 via-white to-purple-600">
     <RouterView />
   </div>
-  <!-- <h1 class="text-3xl font-bold underline">
-    Hello world!
-  </h1> -->
 </template>
 
 <style scoped>

@@ -190,7 +190,7 @@ const handleRegister = async () => {
   loading.value = true
 
   if (password.value !== confirmPassword.value) {
-    // showPopupMessage('Passwords do not match')
+    console.log('Passwords do not match')
     popupRef.value.show('Passwords do not match', 'error')
     loading.value = false
     return
@@ -223,10 +223,13 @@ const handleRegister = async () => {
     const errorMessage = error.response?.data?.message || 'Registration failed. Please try again.'
 
     if (errorMessage.includes('Username')) {
+      console.log('Username already taken')
       popupRef.value.show('The Username is already taken. Please choose a different one.', 'error')
     } else if (errorMessage.includes('Email')) {
+      console.log('Email already registered')
       popupRef.value.show('The Email is already registered. Please use a different one.', 'error')
     } else {
+      console.log('Registration failed:', errorMessage)
       popupRef.value.show(errorMessage, 'error')
     }
 

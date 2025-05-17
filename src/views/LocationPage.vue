@@ -1,97 +1,210 @@
 <template>
-  <div class="app-container">
+  <div class="min-h-screen w-full flex flex-col overflow-auto bg-white text-gray-800">
     <LoadingOverlay :show="loading" />
     <PopupMessage ref="popupRef" />
 
-    <!-- Progress Bar -->
-    <div class="progress-bar">
-      <div
-        v-for="(step, index) in steps"
-        :key="index"
-        :class="['progress-step', { active: currentStep === index }]"
-        @click="goToStep(index)"
+    <!-- Back Button -->
+    <!-- <div class="flex justify-between items-center px-4 py-4 bg-transparent text-white shadow backdrop-blur-md">
+      <button
+        @click="$router.push('/cart')"
+        class="flex items-center gap-2 font-medium text-black hover:bg-gradient-to-r from-gray-300/50 to-gray-500/50 px-4 py-2 rounded-md transition"
       >
-        {{ step }}
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+          <path fill-rule="evenodd" d="M9.707 16.707a1 1 0 01-1.414 0L2.293 10l6-6a1 1 0 011.414 1.414L4.414 10l5.293 5.293a1 1 0 010 1.414z" clip-rule="evenodd" />
+        </svg>
+        Back to Cart
+      </button>
+      <h1 class="text-2xl font-bold text-black">Manage Location</h1>
+      <div class="w-24"></div>
+    </div> -->
+
+    <!-- Back Button & Title Component -->
+    <BackButton
+      :buttonLabel="'Back to Cart'"
+      :destination="'/cart'"
+      :defaultTitle="'Manage Location'"
+      :waitDuration="durationWait"
+    ></BackButton>
+
+    <!-- Progress Bar -->
+    <div class="w-full bg-white py-6 flex justify-center">
+      <div class="w-full max-w-4xl bg-gray-50 border rounded-lg p-4">
+        <div class="flex items-center justify-between">
+          <div
+            v-for="(step, index) in steps"
+            :key="index"
+            class="relative flex items-center flex-1"
+          >
+            <!-- Step Circle -->
+            <div
+              class="flex flex-col items-center gap-2 cursor-pointer"
+              @click="goToStep(index)"
+            >
+              <div
+                class="w-10 h-10 flex items-center justify-center rounded-full border-2 transition-all duration-300"
+                :class="{
+                  'bg-indigo-600 text-white border-indigo-600': currentStep >= index,
+                  'bg-white text-indigo-600 border-indigo-600': currentStep < index,
+                }"
+              >
+                <!-- Step Number or Checkmark -->
+                <template v-if="currentStep > index">
+                  <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                    <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 00-1.414 0L8 12.586 4.707 9.293a1 1 0 10-1.414 1.414l4 4a1 1 0 001.414 0l8-8a1 1 0 000-1.414z" clip-rule="evenodd" />
+                  </svg>
+                </template>
+                <template v-else>
+                  {{ index + 1 }}
+                </template>
+              </div>
+              <!-- Step Label -->
+              <span
+                class="text-sm font-medium text-center"
+                :class="{ 'text-indigo-600': currentStep === index, 'text-gray-500': currentStep !== index }"
+              >
+                {{ step }}
+              </span>
+            </div>
+
+            <!-- Connector -->
+            <div
+              v-if="index < steps.length - 1 || index === steps.length - 1"
+              class="flex-grow h-0.5 mx-2"
+              :class="{ 'bg-indigo-600': currentStep > index, 'bg-gray-300': currentStep <= index }"
+            ></div>
+          </div>
+        </div>
       </div>
     </div>
 
     <!-- Step Content -->
-    <div class="step-content">
+    <div class="flex-grow flex flex-col items-center bg-white">
       <!-- Step 1: View Locations -->
-      <div v-if="currentStep === 0">
-        <h2 class="subtitle">Your Locations</h2>
-        <div v-if="locations.length > 0" class="location-list">
-          <div v-for="(location, index) in locations" :key="index" class="location-box">
-            <div class="location-info">
-              <p class="location-title">{{ location.Address }}</p>
-              <p class="location-detail">Postal Code: {{ location.PostalCode }}</p>
-              <p class="location-detail">Region: {{ location.Region }}</p>
-              <p class="location-detail">
+      <div v-if="currentStep === 0" class="w-full max-w-3xl">
+        <h2 class="text-lg font-medium text-gray-800 mb-4">Your Locations</h2>
+        <div v-if="locations.length > 0" class="space-y-4">
+          <div
+            v-for="(location, index) in locations"
+            :key="index"
+            class="p-4 border border-gray-200 rounded-lg shadow-sm flex justify-between items-center bg-gradient-to-r from-blue-500 to-blue-500 hover:from-purple-500 hover:to-purple-600 transition duration-300 text-white"
+          >
+            <div>
+              <p class="font-medium">{{ location.Address }}</p>
+              <p class="text-sm">Postal Code: {{ location.PostalCode }}</p>
+              <p class="text-sm">Region: {{ location.Region }}</p>
+              <p class="text-sm">
                 Country: {{ location.CountryName }} ({{ location.CountryCode }})
               </p>
             </div>
-            <div class="button-group">
-              <button @click="editLocation(index)" class="button secondary">Edit</button>
-              <button @click="deleteLocation(index)" class="button danger">Delete</button>
+            <div class="flex space-x-2">
+              <button
+                @click="editLocation(index)"
+                class="px-4 py-2 text-sm font-medium text-white border border-white rounded-md hover:bg-blue-50 hover:text-blue-600"
+              >
+                Edit
+              </button>
+              <button
+                @click="deleteLocation(index)"
+                class="px-4 py-2 text-sm font-medium text-white border border-white rounded-md hover:bg-red-50 hover:text-red-600"
+              >
+                Delete
+              </button>
             </div>
           </div>
         </div>
-        <div v-else class="empty-state">No locations available.</div>
-        <div class="action">
-          <button @click="goToStep(1)" class="button primary">Add Location</button>
+        <div v-else class="text-center text-gray-500 py-6">
+          No locations available.
+        </div>
+        <div class="mt-6">
+          <button
+            @click="goToStep(1)"
+            class="w-full px-6 py-3 bg-green-600 text-white font-medium rounded-md hover:bg-green-700 transition-colors"
+          >
+            Add Location
+          </button>
         </div>
       </div>
 
       <!-- Step 2: Register Location -->
-      <div v-if="currentStep === 1">
-        <h2 class="subtitle">Register a New Location</h2>
-        <form @submit.prevent="saveLocationData" class="location-form">
-          <div class="form-group">
-            <label for="address">Address</label>
+      <div v-if="currentStep === 1" class="w-full max-w-3xl">
+        <h2 class="text-lg font-medium text-gray-800 mb-4">Register a New Location</h2>
+        <form @submit.prevent="saveLocationData" class="space-y-4">
+          <div>
+            <label for="address" class="block text-sm font-medium">Address</label>
             <input
               type="text"
               id="address"
               v-model="newAddress"
-              placeholder="Enter address"
+              class="mt-1 block w-full p-2.5 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-600 focus:border-indigo-600 sm:text-sm"
               required
             />
           </div>
-          <div class="form-group">
-            <label for="postalCode">Postal Code</label>
+          <div>
+            <label for="postalCode" class="block text-sm font-medium">Postal Code</label>
             <input
               type="text"
               id="postalCode"
               v-model="newPostalCode"
-              placeholder="Enter postal code"
+              class="mt-1 block w-full p-2.5 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-600 focus:border-indigo-600 sm:text-sm"
               required
             />
           </div>
-          <div class="form-group">
-            <label for="country">Country</label>
-            <select id="country" v-model="newCountry" @change="filterRegionsByCountry" required>
+          <div>
+            <label for="country" class="block text-sm font-medium">Country</label>
+            <select
+              id="country"
+              v-model="newCountry"
+              @change="filterRegionsByCountry"
+              class="mt-1 block w-full p-2.5 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-600 focus:border-indigo-600 sm:text-sm"
+              required
+            >
               <option disabled value="">Select a country</option>
-              <option v-for="(country, index) in countryOptions" :key="index" :value="country">
+              <option
+                v-for="(country, index) in countryOptions"
+                :key="index"
+                :value="country"
+              >
                 {{ country.CountryName }} ({{ country.CountryCode }})
               </option>
             </select>
           </div>
-          <div class="form-group">
-            <label for="region">Region</label>
-            <select id="region" v-model="newRegion" required>
+          <div>
+            <label for="region" class="block text-sm font-medium">Region</label>
+            <select
+              id="region"
+              v-model="newRegion"
+              class="mt-1 block w-full p-2.5 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-600 focus:border-indigo-600 sm:text-sm"
+              required
+            >
               <option disabled value="">Select a region</option>
-              <option v-for="(region, index) in filteredRegions" :key="index" :value="region">
+              <option
+                v-for="(region, index) in filteredRegions"
+                :key="index"
+                :value="region"
+              >
                 {{ region.Region }}
               </option>
             </select>
           </div>
-          <button type="submit" class="button primary">Save Location</button>
+          <button
+            type="submit"
+            class="w-full px-6 py-3 bg-green-600 text-white font-medium rounded-md hover:bg-green-700 transition-colors"
+          >
+            Save Location
+          </button>
         </form>
+        <button
+          @click="goToStep(0)"
+          class="mt-4 w-full px-6 py-3 bg-gray-200 text-gray-800 font-medium rounded-md hover:bg-gray-300 transition-colors"
+        >
+          Back
+        </button>
       </div>
 
       <!-- Step 3: Confirm Location -->
-      <div v-if="currentStep === 2">
-        <h2 class="subtitle">Confirm Your Location</h2>
-        <div class="location-summary">
+      <div v-if="currentStep === 2" class="w-full max-w-3xl">
+        <h2 class="text-lg font-medium text-gray-800 mb-4">Confirm Your Location</h2>
+        <div class="p-4 border border-gray-200 rounded-lg shadow-sm space-y-2 bg-white/80 backdrop-blur-md">
           <p><strong>Address:</strong> {{ newAddress }}</p>
           <p><strong>Postal Code:</strong> {{ newPostalCode }}</p>
           <p><strong>Region:</strong> {{ newRegion.Region }}</p>
@@ -99,9 +212,20 @@
             <strong>Country:</strong> {{ newCountry.CountryName }} ({{ newCountry.CountryCode }})
           </p>
         </div>
-        <div class="action">
-          <button @click="confirmLocation" class="button primary">Finish</button>
+        <div class="mt-6">
+          <button
+            @click="confirmLocation"
+            class="w-full px-6 py-3 bg-green-600 text-white font-medium rounded-md hover:bg-green-700 transition-colors"
+          >
+            Finish
+          </button>
         </div>
+        <button
+          @click="goToStep(1)"
+          class="mt-4 w-full px-6 py-3 bg-gray-200 text-gray-800 font-medium rounded-md hover:bg-gray-300 transition-colors"
+        >
+          Back
+        </button>
       </div>
     </div>
   </div>
@@ -111,17 +235,23 @@
 import { ref, onMounted } from 'vue'
 import api from '@/services/api'
 
-// Components
 import LoadingOverlay from '@/components/LoadingOverlay.vue'
 import PopupMessage from '@/components/PopupMessage.vue'
+import BackButton from '@/components/BackButton.vue'
+import { useFetchUserId } from '@/composables/useFetchUserId.js'
 
+// Data
+// Use the composable for fetching user ID
+const { userId, fetchUserId } = useFetchUserId()
+
+const durationWait = 1000 // 1 second
 const loading = ref(false)
 const popupRef = ref(null)
 
 const steps = ['View Locations', 'Register Location', 'Confirm Location']
 const currentStep = ref(0)
 const locations = ref([])
-const userId = ref(null)
+// const userId = ref(null)
 const regionOptions = ref([])
 const filteredRegions = ref([]) // Filtered regions based on the selected country
 const countryOptions = ref([])
@@ -190,23 +320,23 @@ const fetchCountries = async () => {
 }
 
 // Fetch the logged-in user's ID from localStorage or cookies
-const fetchUserId = () => {
-  try {
-    // First, attempt to retrieve userId from localStorage
-    const storedUserId = localStorage.getItem('userId')
-    userId.value = storedUserId
-    console.log('Logged-in User ID (from localStorage):', userId.value)
+// const fetchUserId = () => {
+//   try {
+//     // First, attempt to retrieve userId from localStorage
+//     const storedUserId = localStorage.getItem('userId')
+//     userId.value = storedUserId
+//     console.log('Logged-in User ID (from localStorage):', userId.value)
 
-    // If not found in localStorage, attempt to retrieve it from cookies
-    const cookies = document.cookie.split('; ')
-    console.log('Cookies:', cookies)
-    const userIdCookie = cookies.find((row) => row.startsWith('userId='))
-    userId.value = userIdCookie.split('=')[1]
-    console.log('Logged-in User ID (from cookies):', userId.value)
-  } catch (error) {
-    console.error('Error retrieving User ID:', error)
-  }
-}
+//     // If not found in localStorage, attempt to retrieve it from cookies
+//     const cookies = document.cookie.split('; ')
+//     console.log('Cookies:', cookies)
+//     const userIdCookie = cookies.find((row) => row.startsWith('userId='))
+//     userId.value = userIdCookie.split('=')[1]
+//     console.log('Logged-in User ID (from cookies):', userId.value)
+//   } catch (error) {
+//     console.error('Error retrieving User ID:', error)
+//   }
+// }
 
 // Filter regions by the selected country
 const filterRegionsByCountry = () => {
@@ -281,10 +411,6 @@ const registerLocation = async () => {
     await fetchLocations()
 
     // Reset the form and go back to the first step
-    // newAddress.value = ''
-    // newPostalCode.value = ''
-    // newRegion.value = null
-    // newCountry.value = null
     resetForm()
     goToStep(0)
   } catch (error) {
@@ -382,138 +508,5 @@ onMounted(async () => {
 </script>
 
 <style scoped>
-/* General container styles */
-.app-container {
-  display: flex;
-  flex-direction: column;
-  gap: 1.5rem;
-  padding: 2rem;
-  width: 100%;
-  height: auto;
-  box-sizing: border-box;
-  /* overflow-y: auto; */
-  background-color: #f9f9f9;
-}
 
-/* Progress bar styles */
-.progress-bar {
-  display: flex;
-  justify-content: space-between;
-  margin-bottom: 1rem;
-}
-
-.progress-step {
-  flex: 1;
-  text-align: center;
-  padding: 0.5rem;
-  border: 1px solid #ccc;
-  border-radius: 0.5rem;
-  background-color: #e0e0e0;
-  cursor: pointer;
-}
-
-.progress-step.active {
-  background-color: #007bff;
-  color: #fff;
-}
-
-/* Subtitle styles */
-.subtitle {
-  font-size: 1.5rem;
-  font-weight: 600;
-  color: #555;
-}
-
-/* List styles */
-.location-list {
-  display: flex;
-  flex-direction: column;
-  gap: 1rem;
-}
-
-.location-box {
-  padding: 1rem;
-  border: 1px solid #ccc;
-  border-radius: 0.5rem;
-  background-color: #fff;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-}
-
-.location-info {
-  display: flex;
-  flex-direction: column;
-  gap: 0.25rem;
-}
-
-.location-title {
-  font-size: 1.25rem;
-  font-weight: bold;
-  color: #333;
-}
-
-.location-detail {
-  color: #777;
-}
-
-/* Form styles */
-.location-form {
-  display: flex;
-  flex-direction: column;
-  gap: 1rem;
-}
-
-.form-group {
-  display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
-}
-
-input,
-select {
-  padding: 0.5rem;
-  border: 1px solid #ccc;
-  border-radius: 0.5rem;
-  font-size: 1rem;
-}
-
-input:focus,
-select:focus {
-  border-color: #007bff;
-  outline: none;
-}
-
-/* Buttons */
-.button {
-  padding: 0.5rem 1rem;
-  border: none;
-  border-radius: 0.5rem;
-  cursor: pointer;
-}
-
-.button.primary {
-  background-color: #28a745;
-  color: #fff;
-}
-
-.button.primary:hover {
-  background-color: #218838;
-}
-
-.button.secondary {
-  background-color: #17a2b8;
-  color: #fff;
-}
-
-.button.secondary:hover {
-  background-color: #138496;
-}
-
-.button.danger {
-  background-color: #dc3545;
-  color: #fff;
-}
-
-.button.danger:hover {
-  background-color: #c82333;
-}
 </style>

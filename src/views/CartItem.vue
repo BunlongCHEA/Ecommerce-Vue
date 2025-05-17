@@ -3,16 +3,27 @@
     <LoadingOverlay :show="loading" />
     <PopupMessage ref="popupRef" />
 
-    <div class="flex justify-between items-center mb-6">
-      <button @click="goBack" class="text-blue-600 hover:text-blue-800 flex items-center gap-1">
+    <!-- <div class="flex justify-between items-center px-4 py-4 bg-transparent text-white shadow backdrop-blur-md">
+      <button
+        @click="goBack"
+        class="flex items-center gap-2 font-medium text-black hover:bg-gradient-to-r from-gray-300/50 to-gray-500/50 px-4 py-2 rounded-md transition"
+      >
         <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-          <path fill-rule="evenodd" d="M9.707 16.707a1 1 0 01-1.414 0l-6-6a1 1 0 010-1.414l6-6a1 1 0 011.414 1.414L5.414 9H17a1 1 0 110 2H5.414l4.293 4.293a1 1 0 010 1.414z" clip-rule="evenodd" />
+          <path fill-rule="evenodd" d="M9.707 16.707a1 1 0 01-1.414 0L2.293 10l6-6a1 1 0 011.414 1.414L4.414 10l5.293 5.293a1 1 0 010 1.414z" clip-rule="evenodd" />
         </svg>
         Back to Products
       </button>
-      <h1 class="text-2xl font-bold">Shopping Cart</h1>
-      <div class="w-24"></div> <!-- Empty div for flex spacing -->
-    </div>
+      <h1 class="text-2xl font-bold text-black">Shopping Cart</h1>
+      <div class="w-24"></div>
+    </div> -->
+
+    <!-- Back Button & Title Component -->
+    <BackButton
+      :buttonLabel="'Back to Products'"
+      :destination="'/product'"
+      :defaultTitle="'Shopping Cart'"
+      :waitDuration="durationWait"
+    ></BackButton>
 
     <!-- Main Container with Left and Right Columns -->
     <div class="flex flex-col lg:flex-row gap-6">
@@ -136,9 +147,13 @@
             </div>
             <div v-else class="text-center py-6 text-gray-500">No coupons available</div>
             <div class="mt-4">
-              <router-link to="/coupon" class="block w-full text-center py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-md transition-colors">
+              <!-- <router-link to="/coupon" class="">
                 View More Coupons
-              </router-link>
+              </router-link> -->
+
+              <button @click="addCoupon" class="block w-full text-center py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-md transition-colors">
+                View More Coupons
+              </button>
             </div>
           </div>
         </div>
@@ -147,14 +162,14 @@
         <div class="bg-white rounded-lg shadow-sm">
           <h2 class="px-6 py-4 border-b font-semibold text-lg text-gray-800">Cart Items</h2>
           
-          <div v-if="cart.length === 0" class="p-6 text-center text-gray-500">
+          <div v-if="userCartItems.length === 0" class="p-6 text-center text-gray-500">
             Your cart is empty
           </div>
           
           <div v-else>
             <!-- Cart Items List -->
             <div class="divide-y">
-              <div v-for="(item, index) in cart" :key="index" class="flex p-4 hover:bg-gray-50">
+              <div v-for="(item, index) in userCartItems" :key="index" class="flex p-4 hover:bg-gray-50">
                 <!-- Product Image -->
                 <div class="w-24 h-24 flex-shrink-0">
                   <img :src="item.imageUrl" :alt="item.name" class="w-full h-full object-cover rounded-md" />
@@ -222,12 +237,12 @@
           <div class="space-y-3 mb-6">
             <div class="flex justify-between">
               <span class="text-gray-600">Subtotal</span>
-              <span class="font-medium">${{ totalAmount.toFixed(2) }}</span>
+              <span class="font-medium text-green-600">${{ totalAmount.toFixed(2) }}</span>
             </div>
             
             <div class="flex justify-between">
-              <span class="text-gray-600">Shipping estimate</span>
-              <span class="font-medium">$0.00</span>
+              <span class="text-gray-600">Shipping Fee</span>
+              <span class="font-medium text-red-600">-${{ totalShippingCost.toFixed(2) }}</span>
             </div>
             
             <div class="flex justify-between" v-if="selectedCoupon !== null">
@@ -237,7 +252,7 @@
             
             <div class="border-t pt-3 flex justify-between font-semibold">
               <span>Total</span>
-              <span>${{ totalAmountAfterDiscount }}</span>
+              <span>${{ totalAmountAfterDiscountAndShipping }}</span>
             </div>
           </div>
           
@@ -264,16 +279,21 @@ import api from '@/services/api.js'
 
 import PopupMessage from '@/components/PopupMessage.vue'
 import LoadingOverlay from '@/components/LoadingOverlay.vue'
+import BackButton from '@/components/BackButton.vue'
+import { useFetchUserId } from '@/composables/useFetchUserId.js'
 
 // Data
+// Use the composable for fetching user ID
+const { userId, fetchUserId } = useFetchUserId()
+
 const router = useRouter()
 const cart = ref([])
 const locations = ref([])
 const payments = ref([])
 const coupons = ref([])
-// const discountAmount = ref(0)
+const shippingCost = ref(10)
 const couponDiscountAmount = ref(0)
-const userId = ref(null) // Track logged-in user ID
+// const userId = ref(null) // Track logged-in user ID
 
 // Selected location and payment
 const selectedLocation = ref(null) // Track selected location index
@@ -355,26 +375,26 @@ const fetchCoupons = async () => {
 }
 
 // Fetch the logged-in user's ID from localStorage or cookies
-const fetchUserId = () => {
-  try {
-    // First, attempt to retrieve userId from localStorage
-    const storedUserId = localStorage.getItem('userId')
+// const fetchUserId = () => {
+//   try {
+//     // First, attempt to retrieve userId from localStorage
+//     const storedUserId = localStorage.getItem('userId')
 
-    if (storedUserId) {
-      userId.value = storedUserId
-      console.log('Logged-in User ID (from localStorage):', userId.value)
-    } else {
-      // If not found in localStorage, attempt to retrieve it from cookies
-      const cookies = document.cookie.split('; ')
-      console.log('Cookies:', cookies)
-      const userIdCookie = cookies.find((row) => row.startsWith('userId='))
-      userId.value = userIdCookie.split('=')[1]
-      console.log('Logged-in User ID (from cookies):', userId.value)
-    }
-  } catch (error) {
-    console.error('Error retrieving User ID:', error)
-  }
-}
+//     if (storedUserId) {
+//       userId.value = storedUserId
+//       console.log('Logged-in User ID (from localStorage):', userId.value)
+//     } else {
+//       // If not found in localStorage, attempt to retrieve it from cookies
+//       const cookies = document.cookie.split('; ')
+//       console.log('Cookies:', cookies)
+//       const userIdCookie = cookies.find((row) => row.startsWith('userId='))
+//       userId.value = userIdCookie.split('=')[1]
+//       console.log('Logged-in User ID (from cookies):', userId.value)
+//     }
+//   } catch (error) {
+//     console.error('Error retrieving User ID:', error)
+//   }
+// }
 
 // Toggle location selection
 const toggleLocationSelection = (index) => {
@@ -419,15 +439,27 @@ const formatDate = (dateString) => {
   return dateString.split('T')[0] // Split on 'T' and return only the date part
 }
 
-const totalItems = computed(() => cart.value.reduce((sum, item) => sum + item.quantity, 0))
-const totalAmount = computed(() =>
-  cart.value.reduce((sum, item) => sum + item.quantity * item.price, 0),
+const totalItems = computed(() => cart.value
+  .filter((item) => item.userId === userId.value)
+  .reduce((sum, item) => sum + item.quantity, 0))
+
+const totalAmount = computed(() => cart.value
+  .filter((item) => item.userId === userId.value)
+  .reduce((sum, item) => sum + item.quantity * item.price, 0),
 )
+
+const totalShippingCost = computed(() => {
+  if (userCartItems.value.length === 0) {
+    return 0
+  }
+  return shippingCost.value
+})
+
 console.log('Total Amount:', totalAmount.value)
 console.log('Total Items:', totalItems.value)
-const totalAmountAfterDiscount = computed(() => {
+const totalAmountAfterDiscountAndShipping = computed(() => {
   const discount = couponDiscountAmount.value / 100
-  return (totalAmount.value - discount * totalAmount.value).toFixed(2)
+  return (totalAmount.value - (discount * totalAmount.value) - totalShippingCost.value).toFixed(2)
 })
 const calCouponDiscount = computed(() => {
   return (couponDiscountAmount.value / 100) * totalAmount.value
@@ -461,17 +493,17 @@ const proceedToOrder = async () => {
   try {
     const selectedCouponId =
       selectedCoupon.value !== null ? coupons.value[selectedCoupon.value].Id : null
-    const amountAfterDiscount =
-      totalAmount.value - (couponDiscountAmount.value / 100) * totalAmount.value
+    const totalFinalAmount =
+      totalAmount.value - ((couponDiscountAmount.value / 100) * totalAmount.value) - totalShippingCost.value
     console.log('Selected Coupon ID:', selectedCouponId)
-    console.log('Amount after discount:', amountAfterDiscount)
+    console.log('Total Final Amount:', totalFinalAmount)
 
     // Step 1: Create shipment
     console.log('locationId:', locations.value[selectedLocation.value].Id)
     const shipmentResponse = await api.post('/shipment', {
       trackingNumber: `TRK-${Date.now()}`,
-      shipmentDate: new Date().toISOString(),
-      shippingCost: 10.0,
+      // shipmentDate: new Date().toISOString(),
+      shippingCost: totalShippingCost.value,
       shipmentTypeId: 1,
       locationId: locations.value[selectedLocation.value].Id,
     })
@@ -498,7 +530,7 @@ const proceedToOrder = async () => {
       status: 'Pending',
       totalQuantity: totalItems.value,
       totalAmount: totalAmount.value,
-      amountAfterDiscount: amountAfterDiscount.toFixed(2),
+      totalFinalAmount: totalFinalAmount.toFixed(2),
       couponUserListId: selectedCouponId,
       shipmentId: shipmentId,
       paymentId: payments.value[selectedPayment.value].Id,
@@ -520,10 +552,14 @@ const proceedToOrder = async () => {
       console.log('Order item created:', item)
     }
 
-    popupRef.value.show('Order placed successfully!', 'success')
+    console.log('Order items created successfully!')
+    // popupRef.value.show('Order placed successfully!', 'success')
     cart.value = []
     localStorage.removeItem('cart')
     router.push('/order')
+
+    // Refresh the coupons
+    // fetchCoupons()
   } catch (error) {
     console.error('An error occurred while placing the order. Please try again:', error)
     popupRef.value.show('An error occurred while placing the order. Please try again.', 'error')
@@ -532,12 +568,29 @@ const proceedToOrder = async () => {
 
 // Redirect to add payment route
 const addPaymentMethod = () => {
-  router.push('/payment')
+  loading.value = true
+  setTimeout(() => {
+    loading.value = false
+    router.push('/payment')
+  }, durationWait)
 }
 
 // Redirect to add location route
 const addLocation = () => {
-  router.push('/location')
+  loading.value = true
+  setTimeout(() => {
+    loading.value = false
+    router.push('/location')
+  }, durationWait)
+}
+
+// Redirect to add coupon route
+const addCoupon = () => {
+  loading.value = true
+  setTimeout(() => {
+    loading.value = false
+    router.push('/coupon')
+  }, durationWait)
 }
 
 const goBack = () => {
@@ -548,30 +601,42 @@ const goBack = () => {
   }, durationWait)
 }
 
+// CART MANAGEMENT
+// Computed property to filter cart items based on userId
+const userCartItems = computed(() => {
+  // Only return cart items that belong to the logged-in user
+  return cart.value.filter((item) => item.userId === userId.value)
+})
+
+
 const increaseQuantity = (index) => {
-  cart.value[index].quantity++
+  userCartItems.value[index].quantity++
   saveCart()
 }
 
 const decreaseQuantity = (index) => {
-  if (cart.value[index].quantity > 1) {
-    cart.value[index].quantity--
+  if (userCartItems.value[index].quantity > 1) {
+    userCartItems.value[index].quantity--
   } else {
-    cart.value.splice(index, 1)
+    userCartItems.value.splice(index, 1)
   }
   saveCart()
 }
 
 const removeItem = (index) => {
-  cart.value.splice(index, 1)
+  userCartItems.value.splice(index, 1)
   saveCart()
 }
 
+// Method to clear the cart
 const clearCart = () => {
-  cart.value = []
-  localStorage.removeItem('cart')
+  // cart.value = []
+  // localStorage.removeItem('cart')
+  cart.value = cart.value.filter((item) => item.userId !== userId.value)
+  saveCart()
 }
 
+// Method to save the cart to localStorage
 const saveCart = () => {
   localStorage.setItem('cart', JSON.stringify(cart.value))
 }

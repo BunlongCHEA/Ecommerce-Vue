@@ -1,85 +1,138 @@
 <template>
-  <div class="order-detail">
-    <div v-if="loading">Loading order details...</div>
+  <div class="min-h-screen w-full flex flex-col overflow-auto bg-gray-100 text-gray-800">
+    <!-- Back Button & Title Component -->
+    <BackButton
+      :buttonLabel="'Back to Orders'"
+      :destination="'/order'"
+      :defaultTitle="'All Order Details'"
+      :waitDuration="durationWait"
+    ></BackButton>
 
-    <div v-else-if="order">
-      <div class="header-section">
-        <div class="header-box">
-          <h1 class="order-number">Order Number: {{ order.orderNumber }}</h1>
-          <p class="order-date">Order Created: {{ formatDate(order.orderDate) }}</p>
-          <p class="order-status">Status: {{ order.status }}</p>
-        </div>
-      </div>
+    <div class="order-detail w-full max-w-7xl px-4 sm:px-6 lg:px-8 py-6 mx-auto">
+      <div v-if="loading" class="text-lg font-semibold text-center">Loading order details...</div>
 
-      <!-- Redesigned Status Timeline with Progress Bar -->
-      <div class="tracking-section">
-        <div class="status-box">
-          <!-- Current Status Information -->
-          <div class="current-status-info">
-            <h2>{{ getCurrentStatusMessage }}</h2>
-            <div v-if="getStatusDetails" class="status-details">
-              {{ getStatusDetails }}
-            </div>
+      <div v-else-if="order">
+        <!-- Header Section -->
+        <div class="header-section mb-8 flex justify-between items-center lg:flex-nowrap lg:gap-10">
+          <!-- Order Number -->
+          <div class="header-box flex-1 text-left">
+            <h1 class="text-2xl font-bold text-gray-800">Order Number: {{ order.orderNumber }}</h1>
+            <p class="text-gray-600">Order Created: {{ formatDate(order.orderDate) }}</p>
+            <p class="text-gray-600">Status: {{ order.status }}</p>
+            <p class="text-gray-600 font-medium">Tracking Number: {{ order.trackingNumber }}</p>
           </div>
 
-          <!-- Status Progress Bar -->
-          <div class="status-timeline">
-            <div class="progress-container">
-              <div class="progress-bar">
-                <div class="progress-fill" :style="{ width: calculateStatusProgress + '%' }"></div>
+          <!-- Delivery Location and Tracking Number -->
+          <div class="delivery-info flex-1 text-right">
+            <p class="text-lg font-semibold text-gray-800">Delivery Location:</p>
+            <p class="text-gray-600">{{ order.countryName }}, {{ order.region }}</p>
+            <p class="text-gray-600">{{ order.address }}, {{ order.postalCode }}</p>
+          </div>
+        </div>
+
+        <!-- Redesigned Status Timeline with Progress Bar -->
+        <div class="tracking-section mb-8">
+          <div class="status-box">
+            <!-- Current Status Information -->
+            <div class="current-status-info bg-white shadow-md rounded-lg p-4 border-l-4 border-purple-600">
+              <h2 class="font-semibold text-lg text-gray-800">{{ getCurrentStatusMessage }}</h2>
+              <div v-if="getStatusDetails" class="text-gray-600 text-sm">
+                {{ getStatusDetails }}
               </div>
-              <div class="progress-steps">
-                <div
-                  v-for="(step, index) in statusSteps"
-                  :key="index"
-                  class="progress-step"
-                  :class="{
-                    current: step.name === order.status,
-                    completed: isStepCompleted(step.name),
-                  }"
-                >
-                  <div class="step-marker"></div>
-                  <div class="step-content">
-                    <p class="step-name">{{ step.name }}</p>
-                    <p class="step-date">{{ statusDates[step.name] || 'N/A' }}</p>
+            </div>
+
+            <!-- Status Progress Bar -->
+            <div class="status-timeline mt-6">
+              <div class="progress-container relative w-full">
+                <div class="progress-bar h-2 bg-gray-300 rounded">
+                  <div class="progress-fill h-full bg-purple-600 rounded transition-all" :style="{ width: calculateStatusProgress + '%' }"></div>
+                </div>
+                <div class="progress-steps flex justify-between mt-2">
+                  <div
+                    v-for="(step, index) in statusSteps"
+                    :key="index"
+                    class="progress-step flex flex-col items-center text-center w-1/6 relative"
+                    :class="{
+                      'text-purple-600 font-bold': step.name === order.status,
+                      'text-gray-500': !isStepCompleted(step.name),
+                      'text-purple-600': isStepCompleted(step.name),
+                    }"
+                  >
+                    <div class="step-marker w-4 h-4 bg-gray-300 rounded-full mb-2 border-2 border-white shadow"
+                      :class="{
+                        'bg-purple-600': isStepCompleted(step.name),
+                      }"
+                    ></div>
+                    <div class="step-content">
+                      <p class="step-name text-sm">{{ step.name }}</p>
+                      <p class="step-date text-xs text-gray-500">{{ statusDates[step.name] || 'N/A' }}</p>
+                    </div>
                   </div>
                 </div>
               </div>
             </div>
           </div>
         </div>
-      </div>
 
-      <div class="content-section">
-        <div class="item-summary">
-          <div class="table-header">
-            <span class="col-product">Item Summary</span>
-            <span class="col-qty">QTY</span>
-            <span class="col-price">Price</span>
-            <span class="col-total">Total Price</span>
-          </div>
-          <div class="item-scroll">
-            <div v-for="item in orderItems" :key="item.id" class="item-row">
-              <div class="col-product">
-                <img :src="item.imageUrl" alt="Product Image" class="item-image" />
-                <div>
-                  <h3 class="product-title">{{ item.productName }}</h3>
-                  <p class="product-color">Colour: Blue</p>
+        <div class="content-section flex flex-col lg:flex-row gap-6">
+          <div class="item-summary flex-1 bg-white shadow-md rounded-lg p-4">
+            <div class="table-header flex justify-between font-semibold text-gray-800 bg-gray-100 rounded p-2">
+              <span class="col-product">Item Summary</span>
+              <span class="col-qty">QTY</span>
+              <span class="col-price">Price</span>
+              <span class="col-total">Total Price</span>
+            </div>
+            <div class="item-scroll divide-y divide-gray-200 mt-4">
+              <div v-for="item in orderItems" :key="item.id" class="item-row flex items-center py-4">
+                <div class="col-product flex-1 flex items-center gap-4">
+                  <img :src="item.imageUrl" alt="Product Image" class="w-16 h-16 object-cover rounded" />
+                  <div>
+                    <h3 class="product-title font-medium text-gray-800">{{ item.productName }}</h3>
+                    <p class="product-color text-sm text-gray-500">Colour: Blue</p>
+                  </div>
                 </div>
+                <div class="col-qty w-16 text-center">x{{ item.quantity }}</div>
+                <div class="col-price w-24 text-center">${{ item.price.toFixed(2) }}</div>
+                <div class="col-total w-24 text-center">${{ item.totalPrice.toFixed(2) }}</div>
               </div>
-              <div class="col-qty">x{{ item.quantity }}</div>
-              <div class="col-price">${{ item.price.toFixed(2) }}</div>
-              <div class="col-total">${{ item.totalPrice.toFixed(2) }}</div>
             </div>
           </div>
-        </div>
 
-        <div class="order-summary">
-          <h2>Order Summary</h2>
-          <p>Subtotal: ${{ subtotal.toFixed(2) }}</p>
-          <p>Delivery Fee: $0.00</p>
-          <p class="discount">Coupon Discount(%): -${{ couponDiscount.toFixed(2) }}</p>
-          <p class="summary-total">Total: ${{ amountAfterDiscount.toFixed(2) }}</p>
+          <!-- <div class="order-summary bg-white shadow-md rounded-lg p-4 w-full lg:w-1/4">
+            <h2 class="text-lg font-semibold text-gray-800 mb-4">Order Summary</h2>
+            <p class="text-gray-600">Subtotal: <span class="font-medium">${{ subtotal.toFixed(2) }}</span></p>
+            <p class="text-red-600">Delivery Fee: <span class="font-medium">-${{ shippingCost.toFixed(2) }}</span></p>
+            <p class="text-red-600">Coupon Discount: -${{ couponDiscount.toFixed(2) }}</p>
+            <p class="summary-total text-green-600 font-bold text-lg mt-4">Total: ${{ amountAfterDiscount.toFixed(2) }}</p>
+          </div> -->
+
+          <div class="lg:w-1/3">
+            <div class="bg-white rounded-lg shadow-sm p-6 sticky top-6">
+              <h2 class="text-xl font-semibold mb-4">Order Summary</h2>
+              
+              <div class="space-y-3 mb-6">
+                <div class="flex justify-between">
+                  <span class="text-gray-600">Subtotal</span>
+                  <span class="font-medium text-green-600">${{ subtotal.toFixed(2) }}</span>
+                </div>
+                
+                <div class="flex justify-between" v-if="couponDiscount > 0">
+                  <span class="text-gray-600">Discount</span>
+                  <span class="font-medium text-red-600">-${{ calCouponDiscount.toFixed(2) }}</span>
+                </div>
+
+                <div class="flex justify-between">
+                  <span class="text-gray-600">Shipping Fee</span>
+                  <span class="font-medium text-red-600">-${{ shippingCost.toFixed(2) }}</span>
+                </div>
+                
+                <div class="border-t pt-3 flex justify-between font-semibold">
+                  <span>Total</span>
+                  <span>${{ totalFinalAmount.toFixed(2) }}</span>
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
     </div>
@@ -91,15 +144,18 @@ import { ref, computed, onMounted } from 'vue'
 import { useRoute } from 'vue-router'
 import api from '@/services/api.js'
 
+import BackButton from '@/components/BackButton.vue'
+
+const durationWait = 1000
 const route = useRoute()
 const orderId = route.params.orderId
 
 const order = ref(null)
 const orderItems = ref([])
 const loading = ref(true)
-const discountAmount = ref(0)
 const couponDiscount = ref(0)
-const amountAfterDiscount = ref(0)
+const shippingCost = ref(0)
+const totalFinalAmount = ref(0)
 
 const statusSteps = [
   { name: 'Pending', icon: 'fas fa-hourglass-start' },
@@ -175,14 +231,22 @@ const fetchOrderDetail = async () => {
         orderNumber: firstOrder.orderNumber,
         orderDate: firstOrder.orderDate,
         status: firstOrder.status,
+        trackingNumber: firstOrder.trackingNumber,
+        address: firstOrder.address,
+        postalCode: firstOrder.postalCode,
+        region: firstOrder.region,
+        countryName: firstOrder.countryName,
       }
 
       // Populate discount amount & amount after discount
       couponDiscount.value = firstOrder.couponDiscount ?? 0
       console.log('Coupon Discount:', firstOrder.couponDiscount)
 
-      amountAfterDiscount.value = firstOrder.amountAfterDiscount ?? 0
-      console.log('Amount After Discount:', amountAfterDiscount.value)
+      totalFinalAmount.value = firstOrder.totalFinalAmount ?? 0
+      console.log('Amount After Discount:', totalFinalAmount.value)
+
+      shippingCost.value = firstOrder.shippingCost ?? 0
+      console.log('Shipping Cost:', shippingCost.value)
 
       // Populate order items
       orderItems.value = response.data.map((item) => ({
@@ -218,6 +282,10 @@ const fetchOrderDetail = async () => {
 
 const subtotal = computed(() => orderItems.value.reduce((sum, item) => sum + item.totalPrice, 0))
 
+const calCouponDiscount = computed(() => {
+  return (couponDiscount.value / 100) * subtotal.value
+})
+
 // Calculate progress for status timeline
 const calculateStatusProgress = computed(() => {
   const currentIndex = statusSteps.findIndex((step) => step.name === order.value?.status)
@@ -237,11 +305,12 @@ const isStepCompleted = (stepName) => {
   const currentIndex = statusSteps.findIndex((step) => step.name === order.value.status)
 
   // Special handling for Cancelled status
-  if (order.value.status === 'Cancelled') {
-    return stepName === 'Cancelled'
-  }
+  // if (order.value.status === 'Cancelled') {
+  //   return stepName === 'Cancelled'
+  // }
 
-  return stepIndex < currentIndex
+  // return stepIndex < currentIndex
+  return order.value.status === 'Cancelled' ? stepName === 'Cancelled' : stepIndex < currentIndex
 }
 
 const formatDate = (dateString) => {
@@ -255,244 +324,5 @@ onMounted(() => {
 </script>
 
 <style scoped>
-.order-detail {
-  padding: 1rem;
-  display: flex;
-  flex-direction: column;
-  gap: 2rem;
-  width: 100%;
-  box-sizing: border-box;
-}
 
-.header-section {
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
-  gap: 1rem;
-  margin-bottom: 2rem;
-}
-
-.header-box {
-  flex: 1;
-}
-
-/* New tracking section */
-.tracking-section {
-  margin-bottom: 2rem;
-}
-
-.status-box {
-  width: 100%;
-}
-
-/* Current Status Information */
-.current-status-info {
-  margin-bottom: 1.5rem;
-  padding: 1rem;
-  background-color: #f9f9f9;
-  border-radius: 8px;
-  border-left: 4px solid #4e42d4;
-}
-
-.current-status-info h2 {
-  margin: 0 0 0.5rem 0;
-  color: #333;
-  font-size: 1.2rem;
-}
-
-.status-details {
-  color: #666;
-  font-size: 0.9rem;
-}
-
-/* Status Timeline Styles */
-.status-timeline {
-  margin-top: 2rem;
-}
-
-.progress-container {
-  position: relative;
-  width: 100%;
-  margin: 20px 0;
-}
-
-.progress-bar {
-  height: 6px;
-  background-color: #e0e0e0;
-  border-radius: 3px;
-  position: relative;
-  z-index: 1;
-}
-
-.progress-fill {
-  height: 100%;
-  background-color: #4e42d4; /* Purple color like in the image */
-  border-radius: 3px;
-  transition: width 0.3s ease;
-}
-
-.progress-steps {
-  display: flex;
-  justify-content: space-between;
-  position: relative;
-  margin-top: -12px;
-}
-
-.progress-step {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  text-align: center;
-  width: calc(100% / 6); /* For 6 status steps */
-  position: relative;
-}
-
-.step-marker {
-  width: 16px;
-  height: 16px;
-  background-color: #e0e0e0;
-  border-radius: 50%;
-  margin-bottom: 8px;
-  z-index: 2;
-  border: 3px solid #fff;
-  box-shadow: 0 0 0 1px #e0e0e0;
-}
-
-.progress-step.current .step-marker {
-  background-color: #4e42d4;
-  border: 3px solid #fff;
-  box-shadow: 0 0 0 1px #4e42d4;
-}
-
-.progress-step.completed .step-marker {
-  background-color: #4e42d4;
-}
-
-.step-content {
-  padding-top: 10px;
-}
-
-.step-name {
-  font-weight: 500;
-  font-size: 0.9rem;
-  margin-bottom: 4px;
-}
-
-.progress-step.current .step-name {
-  color: #4e42d4;
-  font-weight: bold;
-}
-
-.step-date {
-  font-size: 0.75rem;
-  color: #666;
-}
-
-/* Content section */
-.content-section {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 2rem;
-  margin-top: 1rem;
-}
-
-.item-summary {
-  flex: 2;
-  max-height: 400px;
-  width: 100%;
-}
-
-.table-header {
-  display: flex;
-  font-weight: bold;
-  padding: 0.5rem;
-  background-color: #f5f5f5;
-  border-radius: 6px;
-}
-
-.item-scroll {
-  display: flex;
-  flex-direction: column;
-  gap: 1rem;
-  margin-top: 1rem;
-}
-
-.item-row {
-  display: flex;
-  align-items: center;
-  gap: 1rem;
-}
-
-.col-product {
-  display: flex;
-  align-items: center;
-  flex: 3;
-  gap: 1rem;
-}
-
-.col-qty,
-.col-price,
-.col-total {
-  flex: 1;
-  text-align: center;
-}
-
-.item-image {
-  width: 60px;
-  height: 60px;
-  object-fit: cover;
-  border-radius: 4px;
-}
-
-.product-title {
-  font-weight: 500;
-}
-
-.product-color {
-  font-size: 0.85rem;
-  color: #888;
-}
-
-.order-summary {
-  flex: 1;
-  background-color: #f5f5f5;
-  padding: 1rem;
-  border-radius: 8px;
-  min-width: 250px;
-}
-
-.summary-total {
-  font-weight: bold;
-  color: green;
-  margin-top: 1rem;
-}
-
-.discount {
-  font-weight: bold;
-  color: red;
-  margin-top: 1rem;
-}
-
-/* Responsive adjustments */
-@media (max-width: 768px) {
-  .progress-step {
-    width: calc(100% / 6); /* Keep equal width for mobile */
-  }
-
-  .step-name {
-    font-size: 0.7rem;
-  }
-
-  .step-date {
-    font-size: 0.6rem;
-  }
-
-  .content-section {
-    flex-direction: column;
-  }
-
-  .order-summary {
-    width: 100%;
-  }
-}
 </style>

@@ -236,9 +236,13 @@ import { Autoplay, Pagination } from 'swiper/modules'
 import PopupMessage from '@/components/PopupMessage.vue'
 import LoadingOverlay from '@/components/LoadingOverlay.vue'
 import PaginationOption from '@/components/PaginationOption.vue'
+import { useFetchUserId } from '@/composables/useFetchUserId.js'
 // import PaginationSeeMore from '@/components/PaginationSeeMore.vue'
 
 // Data
+// Use the composable for fetching user ID
+const { userId, fetchUserId } = useFetchUserId()
+
 // State for products, filters, and Swiper slides
 const products = ref([])
 const categories = ref([])
@@ -283,6 +287,7 @@ const router = useRouter()
 const popupRef = ref(null)
 const loading = ref(false)
 const durationWait = 1000 // 1 second
+// const userId = ref(null)
 
 // Pagination state
 const itemsPerPage = ref(10)
@@ -369,7 +374,9 @@ const decreaseQuantity = (product) => {
 const updateCartTotalQuantity = () => {
   try {
     const cart = JSON.parse(localStorage.getItem('cart')) || [];
-    cartTotalQuantity.value = cart.reduce((total, item) => total + item.quantity, 0);
+    cartTotalQuantity.value = cart
+      .filter((item) => item.userId === userId.value) // Filter items by userId  
+      .reduce((total, item) => total + item.quantity, 0);
   } catch (error) {
     popupRef.value.show('Fail to Add Or Update to Cart', 'error')
     console.error('Error reading cart from localStorage:', error);
@@ -385,9 +392,10 @@ const addToCart = (product) => {
     popupRef.value.show('Please enter a valid quantity.', 'error')
     return
   }
-
+  
+  console.log('User ID:', userId.value)
   const cart = JSON.parse(localStorage.getItem('cart')) || []
-  const existing = cart.find((item) => item.id === product.id)
+  const existing = cart.find((item) => item.id === product.id && item.userId === userId.value)
 
   if (existing) {
     existing.quantity += qty
@@ -400,7 +408,9 @@ const addToCart = (product) => {
       storeName: product.storeName,
       imageUrl: product.imageUrl,
       quantity: qty,
+      userId: userId.value,
     })
+    console.log('cart', cart)
   }
   // Save updated cart to localStorage
   localStorage.setItem('cart', JSON.stringify(cart))
@@ -474,8 +484,8 @@ const loadMoreSubCategories = () => {
 
 // Automatically fetch data when the page is loaded
 onMounted(() => {
+  fetchUserId() // Fetch user ID when the component is mounted
   fetchData()
-
   // Initialize cart quantity from localStorage
   updateCartTotalQuantity();
 })

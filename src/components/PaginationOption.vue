@@ -56,7 +56,6 @@ const totalPages = computed(() => Math.ceil(props.totalItems / props.itemsPerPag
   width: 100%;
   margin-top: 10px;
   padding: 1.5rem 1rem 1rem;
-  /* border-top: 1px solid #e0e0e0; */
   background-color: transparent;
   display: flex;
   justify-content: center;

@@ -11,6 +11,7 @@ import LocationPage from '@/views/LocationPage.vue'
 import OrderPage from '@/views/OrderPage.vue'
 import OrderDetail from '@/views/OrderDetail.vue'
 import CouponPage from '@/views/CouponPage.vue'
+import AdminOrderDetail from '@/views/AdminOrderDetail.vue'
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -85,6 +86,11 @@ const router = createRouter({
       component: CouponPage,
       props: true, // Pass route params as props to the component
     },
+    {
+      path: '/admin/orderdetail',
+      name: 'adminorderdetail',
+      component: AdminOrderDetail,
+    }
   ],
 })
 
