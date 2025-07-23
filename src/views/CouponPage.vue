@@ -18,64 +18,70 @@
       <div class="w-24"></div>
     </div> -->
 
-    <!-- Back Button & Title Component -->
-    <BackButton
-      :buttonLabel="'Back to Cart'"
-      :destination="'/cart'"
-      :defaultTitle="'Manage Coupon'"
-      :waitDuration="durationWait"
-    ></BackButton>
+    <HamburgerMenu @menu-toggle="updateMenuState" />
 
-    <!-- Ensure content is pushed below fixed header -->
-    <div class="mt-20 w-full flex flex-col items-center">
-      <!-- Search Section -->
-      <div class="w-full max-w-3xl bg-white p-6 rounded-lg shadow-md mb-6">
-        <h2 class="text-lg font-semibold text-gray-700 mb-4 text-center">Search for a Coupon</h2>
-        <div class="flex gap-4">
-          <input
-            v-model="searchCoupon"
-            type="text"
-            placeholder="Enter coupon code"
-            class="flex-grow px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-            @keydown.enter="searchForCoupon"
-          />
-          <button
-            @click="searchForCoupon"
-            class="px-6 py-2 bg-blue-600 text-white font-medium rounded-md hover:bg-blue-700 transition"
-          >
-            Search
-          </button>
-        </div>
-      </div>
+    <div class="w-full transform transition-transform duration-500"
+         :class="{ 'translate-x-64': isMenuOpen }">
 
-      <!-- Coupon List Section -->
-      <div class="w-full px-6">
-        <h2 class="text-lg font-semibold text-gray-700 mb-4 text-center">Available Coupons</h2>
-        <div
-          v-if="coupons.length > 0"
-          class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 justify-center"
-        >
-          <div
-            v-for="coupon in coupons"
-            :key="coupon.Id"
-            class="p-4 bg-blue-500 text-white rounded-lg shadow hover:bg-purple-500 hover:shadow-lg transition-all duration-300"
-          >
-            <p class="font-medium">
-              <strong>Code:</strong> {{ coupon.CouponCode }}
-            </p>
-            <p class="text-sm">
-              <strong>Discount:</strong> %{{ coupon.CouponDiscountAmount }}
-            </p>
-            <p class="text-sm">
-              <strong>Description:</strong> {{ coupon.CouponDescription }}
-            </p>
-            <p class="text-sm">
-              <strong>Expiry Date:</strong> {{ formatDate(coupon.ExpiryDate) }}
-            </p>
+      <!-- Back Button & Title Component -->
+      <BackButton
+        :buttonLabel="'Back to Cart'"
+        :destination="'/cart'"
+        :defaultTitle="'Manage Coupon'"
+        :waitDuration="durationWait"
+      ></BackButton>
+
+      <!-- Ensure content is pushed below fixed header -->
+      <div class="mt-20 w-full flex flex-col items-center">
+        <!-- Search Section -->
+        <div class="w-full max-w-3xl bg-white p-6 rounded-lg shadow-md mb-6">
+          <h2 class="text-lg font-semibold text-gray-700 mb-4 text-center">Search for a Coupon</h2>
+          <div class="flex gap-4">
+            <input
+              v-model="searchCoupon"
+              type="text"
+              placeholder="Enter coupon code"
+              class="flex-grow px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              @keydown.enter="searchForCoupon"
+            />
+            <button
+              @click="searchForCoupon"
+              class="px-6 py-2 bg-blue-600 text-white font-medium rounded-md hover:bg-blue-700 transition"
+            >
+              Search
+            </button>
           </div>
         </div>
-        <div v-else class="text-center text-gray-500 py-6">
-          No coupons available.
+
+        <!-- Coupon List Section -->
+        <div class="w-full px-6">
+          <h2 class="text-lg font-semibold text-gray-700 mb-4 text-center">Available Coupons</h2>
+          <div
+            v-if="coupons.length > 0"
+            class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 justify-center"
+          >
+            <div
+              v-for="coupon in coupons"
+              :key="coupon.Id"
+              class="p-4 bg-blue-500 text-white rounded-lg shadow hover:bg-purple-500 hover:shadow-lg transition-all duration-300"
+            >
+              <p class="font-medium">
+                <strong>Code:</strong> {{ coupon.couponCode }}
+              </p>
+              <p class="text-sm">
+                <strong>Discount:</strong> %{{ coupon.couponDiscountPercentage }}
+              </p>
+              <p class="text-sm">
+                <strong>Description:</strong> {{ coupon.couponDescription }}
+              </p>
+              <p class="text-sm">
+                <strong>Expiry Date:</strong> {{ formatDate(coupon.expiryDate) }}
+              </p>
+            </div>
+          </div>
+          <div v-else class="text-center text-gray-500 py-6">
+            No coupons available.
+          </div>
         </div>
       </div>
     </div>
@@ -89,9 +95,16 @@ import api from '@/services/api.js'
 import PopupMessage from '@/components/PopupMessage.vue'
 import LoadingOverlay from '@/components/LoadingOverlay.vue'
 import BackButton from '@/components/BackButton.vue'
+import HamburgerMenu from '@/components/HamburgerMenu.vue'
 import { useFetchUserId } from '@/composables/useFetchUserId.js'
 
 // Data
+// Update menu state
+const isMenuOpen = ref(false);
+const updateMenuState = (menuState) => {
+  isMenuOpen.value = menuState;
+}
+
 // Use the composable for fetching user ID
 const { userId, fetchUserId } = useFetchUserId()
 
@@ -113,12 +126,12 @@ const fetchCoupons = async () => {
     coupons.value = response.data
       .filter((coupon) => coupon.couponIsActive && !coupon.isUsed)
       .map((coupon) => ({
-        Id: coupon.id,
-        CouponCode: coupon.couponCode,
-        CouponDiscountAmount: coupon.couponDiscountAmount,
-        CouponDescription: coupon.couponDescription,
-        ExpiryDate: coupon.expiryDate,
-        CouponDurationValidity: coupon.couponDurationValidity,
+        id: coupon.id,
+        couponCode: coupon.couponCode,
+        couponDiscountPercentage: coupon.couponDiscountPercentage,
+        couponDescription: coupon.couponDescription,
+        expiryDate: coupon.expiryDate,
+        couponDurationValidity: coupon.couponDurationValidity,
       }))
     console.log('Coupons filter response data:', coupons.value)
   } catch (error) {
@@ -207,7 +220,7 @@ const checkCouponAlreadyAdded = async (couponId) => {
 // Add coupon to couponuserlist
 const addCouponToUserList = async (coupon) => {
   try {
-    const expiryDate = new Date()
+    const expiryDate = new Date();
     console.log('Current date:', expiryDate)
     console.log('Coupon duration validity:', coupon.durationValidity)
     expiryDate.setDate(expiryDate.getDate() + coupon.durationValidity)
@@ -218,7 +231,7 @@ const addCouponToUserList = async (coupon) => {
       userId: userId.value,
       isUsed: false,
       usedDate: null,
-      expiryDate: expiryDate.toISOString(),
+      expiryDate: expiryDate,
     })
   } catch (error) {
     console.error('Error adding coupon to user list:', error)

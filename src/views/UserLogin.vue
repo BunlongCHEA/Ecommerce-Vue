@@ -114,21 +114,26 @@ const handleLogin = async () => {
     // const token = response.data.token
 
     // Debugging: Log token and userId to the console
-    console.log('Response:', response.data)
+    // console.log('Response:', response.data)
+
+    // Create JSON object and encode it in Base64
+    const userData = btoa(JSON.stringify({ userId, role }))
 
     // Clear any old token and store the new one
     localStorage.removeItem('authToken') // Clear old token
     localStorage.setItem('authToken', token) // Save new token
-    localStorage.setItem('userId', userId)
-    localStorage.setItem('role', role) // Save user role
-    document.cookie = `userId=${userId}; path=/; max-age=86400` // Cookie valid for 1 day
-    document.cookie = `role=${role}; path=/; max-age=86400` // Cookie valid for 1 day
+    localStorage.setItem('ecommerce_dotnet_userData', userData) // Save encoded user data
+    // localStorage.setItem('ecommerce_dotnet_userId', userId)
+    // localStorage.setItem('ecommerce_dotnet_role', role) // Save user role
+
+    document.cookie = `ecommerce_dotnet_userData=${userData}; path=/; max-age=86400` // Cookie valid for 1 day
+    // document.cookie = `ecommerce_dotnet_userId=${userId}; path=/; max-age=86400` // Cookie valid for 1 day
+    // document.cookie = `ecommerce_dotnet_role=${role}; path=/; max-age=86400` // Cookie valid for 1 day
 
     // Debugging: Verify values saved in localStorage  && cookie
     console.log('Saved LocalStorage:', {
       authToken: localStorage.getItem('authToken'),
-      userId: localStorage.getItem('userId'),
-      role: localStorage.getItem('role'),
+      userData: localStorage.getItem('ecommerce_dotnet_userData'),
     })
     console.log('Saved Cookie:', document.cookie)
 

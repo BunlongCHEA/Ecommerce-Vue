@@ -5,6 +5,7 @@ import ProductPage from '@/views/ProductPage.vue'
 import UserRegister from '@/views/UserRegister.vue'
 import ForgotPassword from '@/views/ForgotPassword.vue'
 import ResetPasswordSent from '@/views/ResetPasswordSent.vue'
+import Cart from '@/views/Cart.vue'
 import CartItem from '@/views/CartItem.vue'
 import PaymentPage from '@/views/PaymentPage.vue'
 import LocationPage from '@/views/LocationPage.vue'
@@ -12,6 +13,7 @@ import OrderPage from '@/views/OrderPage.vue'
 import OrderDetail from '@/views/OrderDetail.vue'
 import CouponPage from '@/views/CouponPage.vue'
 import AdminOrderDetail from '@/views/AdminOrderDetail.vue'
+import AdminProduct from '@/views/AdminProduct.vue'
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -57,6 +59,11 @@ const router = createRouter({
     {
       path: '/cart',
       name: 'cart',
+      component: Cart,
+    },
+    {
+      path: '/cartitem',
+      name: 'cartitem',
       component: CartItem,
     },
     {
@@ -90,6 +97,11 @@ const router = createRouter({
       path: '/admin/orderdetail',
       name: 'adminorderdetail',
       component: AdminOrderDetail,
+    },
+    {
+      path: '/admin/product',
+      name: 'adminproduct',
+      component: AdminProduct,
     }
   ],
 })

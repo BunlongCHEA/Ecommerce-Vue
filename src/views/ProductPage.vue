@@ -3,13 +3,18 @@
     <LoadingOverlay :show="loading" />
     <PopupMessage ref="popupRef" />
 
-    <!-- Header Section -->
-    <div class="flex justify-between items-center w-full p-4 bg-gradient-to-r from-blue-600 to-purple-600">
-      <!-- Left: Hamburger Menu -->
-      <button class="text-4xl text-white hover:text-gray-200 transition-colors" @click="toggleHamburger">☰</button>
+    <!-- Fixed hamburger menu container -->
+    <div class="fixed top-0 left-0 z-40 h-16 w-16 flex items-center justify-center">
+      <HamburgerMenu @menu-toggle="handleMenuToggle" />
+    </div>
 
+    <!-- Header Section with margin-left to make space for hamburger button -->
+    <div 
+      class="flex justify-between items-center w-full p-4 bg-gradient-to-r from-blue-600 to-purple-600 transition-all duration-500 ease-in-out"
+      :class="{ 'translate-x-64': isMenuOpen }"
+    >
       <!-- Right: Cart and User Profile -->
-      <div class="flex items-center gap-5">
+      <div class="flex items-center gap-5 ml-auto">
         <!-- Cart Button -->
         <button class="relative text-4xl text-white hover:text-gray-200 transition-colors" @click="navigateToCart">
           <i class="cart-icon">🛒</i>
@@ -27,196 +32,208 @@
       </div>
     </div>
 
-    <!-- Top: Swiper Section -->
-    <div class="w-full max-h-[350px] my-[50px] flex justify-center">
-      <Swiper
-        :modules="[Autoplay, Pagination]"
-        :autoplay="{ delay: 5000, disableOnInteraction: false }"
-        :pagination="{ clickable: true }"
-        loop="true"
-        class="w-full max-w-[1000px] rounded-lg overflow-hidden"
-      >
-        <SwiperSlide v-for="(slide, index) in slides" :key="index">
-          <div class="w-full">
-            <img :src="slide.imageUrl" :alt="slide.altText" class="w-full h-auto rounded-lg object-cover" />
-          </div>
-        </SwiperSlide>
-      </Swiper>
-    </div>
-
-    <!-- Main Content -->
-    <div class="flex flex-row gap-5 px-4">
-      <!-- Left Side: Filter Section -->
-      <div class="sticky top-0 max-h-[calc(100vh-1rem)] overflow-y-auto w-[200px] shrink-0 bg-white rounded-lg shadow-sm p-4">
-        <!-- Search Box -->
-        <div class="mb-4">
-          <h3 class="text-lg font-medium mb-2">Search</h3>
-          <input
-            type="text"
-            v-model="searchQuery"
-            placeholder="Search products..."
-            @input="applyFilters"
-            class="w-full p-2 border border-gray-300 rounded-md text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-          />
-        </div>
-
-        <!-- Category Filter -->
-        <div class="mb-4">
-          <h3 class="text-lg font-medium mb-2">Category</h3>
-          <div v-for="category in paginatedCategories" :key="category.id" class="flex items-center mb-2">
-            <input
-              type="checkbox"
-              :id="'category-' + category.id"
-              :value="category.id"
-              v-model="selectedCategories"
-              @change="applyFilters"
-              class="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500"
-            />
-            <label :for="'category-' + category.id" class="ml-2 text-sm text-gray-700">{{ category.name }}</label>
-          </div>
-          <div v-if="categoriesPage < totalCategoriesPages" class="mt-1">
-            <button
-              @click="loadMoreCategories"
-              class="px-3 py-1 bg-blue-600 hover:bg-blue-700 text-white text-xs rounded transition-colors"
-            >
-              See More
-            </button>
-          </div>
-        </div>
-
-        <!-- Brand (SubCategory) Filter -->
-        <div class="mb-4">
-          <h3 class="text-lg font-medium mb-2">Brand</h3>
-          <div
-            v-for="subCategory in paginatedSubCategories"
-            :key="subCategory.id"
-            class="flex items-center mb-2"
-          >
-            <input
-              type="checkbox"
-              :id="'subCategory-' + subCategory.id"
-              :value="subCategory.id"
-              v-model="selectedBrands"
-              @change="applyFilters"
-              class="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500"
-            />
-            <label :for="'subCategory-' + subCategory.id" class="ml-2 text-sm text-gray-700">{{ subCategory.name }}</label>
-          </div>
-          <div v-if="subCategoriesPage < totalSubCategoriesPages" class="mt-1">
-            <button
-              @click="loadMoreSubCategories"
-              class="px-3 py-1 bg-blue-600 hover:bg-blue-700 text-white text-xs rounded transition-colors"
-            >
-              See More
-            </button>
-          </div>
-        </div>
-
-        <!-- Price Range Filter -->
-        <div>
-          <h3 class="text-lg font-medium mb-2">Price Range</h3>
-          <div v-for="range in priceRanges" :key="range.label" class="flex items-center mb-2">
-            <input
-              type="radio"
-              name="priceRange"
-              :id="range.label"
-              :value="range"
-              v-model="selectedPriceRange"
-              @change="applyFilters"
-              class="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 focus:ring-blue-500"
-            />
-            <label :for="range.label" class="ml-2 text-sm text-gray-700">{{ range.label }}</label>
-          </div>
-        </div>
+    <!-- Main Content with transition effect -->
+    <div 
+      class="flex flex-col w-full transition-all duration-500 ease-in-out"
+      :class="{ 'translate-x-64': isMenuOpen }"
+    >
+      <!-- Top: Swiper Section -->
+      <div class="w-full max-h-[350px] my-[50px] flex justify-center">
+        <Swiper
+          :modules="[Autoplay, Pagination]"
+          :autoplay="{ delay: 5000, disableOnInteraction: false }"
+          :pagination="{ clickable: true }"
+          loop="true"
+          class="w-full max-w-[1000px] rounded-lg overflow-hidden"
+        >
+          <SwiperSlide v-for="(slide, index) in slides" :key="index">
+            <div class="w-full">
+              <img :src="slide.imageUrl" :alt="slide.altText" class="w-full h-auto rounded-lg object-cover" />
+            </div>
+          </SwiperSlide>
+        </Swiper>
       </div>
 
-      <!-- Right Side: Product List and Pagination -->
-      <div class="flex-1">
-        <!-- Product Grid -->
-        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 mb-8">
-          <div 
-            v-for="product in paginatedProducts" 
-            :key="product.id" 
-            class="bg-white rounded-lg shadow-sm overflow-hidden flex flex-col"
-          >
-            <!-- Product Image (Bigger) -->
-            <div class="w-full h-96 overflow-hidden">
-              <img 
-                :src="product.imageUrl" 
-                :alt="product.name" 
-                class="w-full h-full object-cover transition-transform duration-300 hover:scale-105"
+      <!-- Product Content -->
+      <div class="flex flex-row gap-5 px-4">
+        <!-- Left Side: Filter Section -->
+        <div class="sticky top-0 max-h-[calc(100vh-1rem)] overflow-y-auto w-[200px] shrink-0 bg-white rounded-lg shadow-sm p-4">
+          <!-- Filter section content -->
+          <!-- Search Box -->
+          <div class="mb-4">
+            <h3 class="text-lg font-medium mb-2">Search</h3>
+            <input
+              type="text"
+              v-model="searchQuery"
+              placeholder="Search products..."
+              @input="debounceSearch"
+              class="w-full p-2 border border-gray-300 rounded-md text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+            />
+          </div>
+
+          <!-- Category Filter -->
+          <div class="mb-4">
+            <h3 class="text-lg font-medium mb-2">Category</h3>
+            <div v-for="category in paginatedCategories" :key="category.id" class="flex items-center mb-2">
+              <input
+                type="checkbox"
+                :id="'category-' + category.id"
+                :value="category.id"
+                v-model="selectedCategories"
+                @change="applyFilters"
+                class="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500"
               />
+              <label :for="'category-' + category.id" class="ml-2 text-sm text-gray-700">{{ category.name }}</label>
             </div>
-            
-            <!-- Product Info -->
-            <div class="p-4 flex flex-col h-full">
-              <!-- Product Info and Price in split layout -->
-              <div class="flex justify-between">
-                <!-- Left: Product Info -->
-                <div class="flex-1 pr-2">
-                  <h4 class="text-lg font-medium text-gray-800 mb-1">{{ product.name }}</h4>
-                  <p class="text-xs text-gray-500 mb-1">Store: {{ product.storeName }}</p>
-                  <p class="text-sm text-gray-600 line-clamp-2">{{ product.description }}</p>
-                </div>
-                
-                <!-- Right: Price & Discount -->
-                <div class="flex flex-col items-end ml-2">
-                  <p class="text-lg font-bold text-gray-800">
-                    ${{ product.price - ((product.discountAmount || 0) / 100) * product.price }}
-                  </p>
-                  <span 
-                    v-if="product.discountAmount" 
-                    class="text-xs font-medium text-red-500"
-                  >-{{ product.discountAmount }}%</span>
-                </div>
-              </div>
-              
-              <!-- Quantity Controls -->
-              <div class="flex items-center justify-center gap-2 mt-4 mb-2">
-                <button 
-                  @click="decreaseQuantity(product)"
-                  class="w-8 h-8 rounded-md bg-blue-600 text-white hover:bg-blue-700 flex items-center justify-center"
-                >-</button>
-                <input 
-                  type="number" 
-                  v-model="quantities[product.id]" 
-                  min="0"
-                  class="w-12 h-8 text-center border border-gray-300 rounded-md focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
-                />
-                <button 
-                  @click="increaseQuantity(product)"
-                  class="w-8 h-8 rounded-md bg-blue-600 text-white hover:bg-blue-700 flex items-center justify-center"
-                >+</button>
-              </div>
-              
-              <!-- Add to Cart Button with hover effect -->
-              <div class="mt-auto pt-2">
-                <button 
-                  @click="addToCart(product)" 
-                  class="w-full py-2 rounded-md text-white text-sm font-medium transition-all duration-300 relative overflow-hidden add-to-cart-btn"
-                >
-                  <span class="relative z-10">Add to Cart</span>
-                </button>
-              </div>
+            <div v-if="categoriesPage < totalCategoriesPages" class="mt-1">
+              <button
+                @click="loadMoreCategories"
+                class="px-3 py-1 bg-blue-600 hover:bg-blue-700 text-white text-xs rounded transition-colors"
+              >
+                See More
+              </button>
+            </div>
+          </div>
+
+          <!-- Brand (SubCategory) Filter -->
+          <div class="mb-4">
+            <h3 class="text-lg font-medium mb-2">Brand</h3>
+            <div
+              v-for="subCategory in paginatedSubCategories"
+              :key="subCategory.id"
+              class="flex items-center mb-2"
+            >
+              <input
+                type="checkbox"
+                :id="'subCategory-' + subCategory.id"
+                :value="subCategory.id"
+                v-model="selectedBrands"
+                @change="applyFilters"
+                class="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500"
+              />
+              <label :for="'subCategory-' + subCategory.id" class="ml-2 text-sm text-gray-700">{{ subCategory.name }}</label>
+            </div>
+            <div v-if="subCategoriesPage < totalSubCategoriesPages" class="mt-1">
+              <button
+                @click="loadMoreSubCategories"
+                class="px-3 py-1 bg-blue-600 hover:bg-blue-700 text-white text-xs rounded transition-colors"
+              >
+                See More
+              </button>
+            </div>
+          </div>
+
+          <!-- Price Range Filter -->
+          <div>
+            <h3 class="text-lg font-medium mb-2">Price Range</h3>
+            <div v-for="range in priceRanges" :key="range.label" class="flex items-center mb-2">
+              <input
+                type="radio"
+                name="priceRange"
+                :id="range.label"
+                :value="range"
+                v-model="selectedPriceRange"
+                @change="applyFilters"
+                class="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 focus:ring-blue-500"
+              />
+              <label :for="range.label" class="ml-2 text-sm text-gray-700">{{ range.label }}</label>
             </div>
           </div>
         </div>
 
-        <!-- Pagination -->
-        <div class="flex justify-center mt-8 mb-8">
-          <PaginationOption
-            :currentPage="currentPage"
-            :itemsPerPage="itemsPerPage"
-            :totalItems="filteredProducts.length"
-            :itemsPerPageOptions="[10, 20, 50]"
-            @update:currentPage="currentPage = $event"
-            @update:itemsPerPage="
-              (val) => {
-                itemsPerPage = val
-                resetPagination()
-              }
-            "
-          />
+        <!-- Right Side: Product List and Pagination -->
+        <div class="flex-1">
+          <!-- Loading indicator -->
+          <div v-if="loading" class="flex justify-center my-8">
+            <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+          </div>
+          
+          <!-- No products found message -->
+          <div v-if="!loading && products.length === 0" class="text-center py-8">
+            <p class="text-gray-500 text-lg">No products found matching your criteria</p>
+          </div>
+          
+          <!-- Product Grid -->
+          <div v-if="!loading && products.length > 0" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 mb-8">
+            <div 
+              v-for="product in products" 
+              :key="product.id" 
+              class="bg-white rounded-lg shadow-sm overflow-hidden flex flex-col"
+            >
+              <!-- Product Image (Bigger) -->
+              <div class="w-full h-96 overflow-hidden">
+                <img 
+                  :src="product.imageUrl" 
+                  :alt="product.name" 
+                  class="w-full h-full object-cover transition-transform duration-300 hover:scale-105"
+                />
+              </div>
+              
+              <!-- Product Info -->
+              <div class="p-4 flex flex-col h-full">
+                <!-- Product Info and Price in split layout -->
+                <div class="flex justify-between">
+                  <!-- Left: Product Info -->
+                  <div class="flex-1 pr-2">
+                    <h4 class="text-lg font-medium text-gray-800 mb-1">{{ product.name }}</h4>
+                    <p class="text-xs text-gray-500 mb-1">Store: {{ product.storeName }}</p>
+                    <p class="text-sm text-gray-600 line-clamp-2">{{ product.description }}</p>
+                  </div>
+                  
+                  <!-- Right: Price & Discount -->
+                  <div class="flex flex-col items-end ml-2">
+                    <p class="text-lg font-bold text-gray-800">
+                      ${{ product.price - ((product.discountPercentage || 0) / 100) * product.price }}
+                    </p>
+                    <span 
+                      v-if="product.discountPercentage" 
+                      class="text-xs font-medium text-red-500"
+                    >-{{ product.discountPercentage }}%</span>
+                  </div>
+                </div>
+                
+                <!-- Quantity Controls -->
+                <div class="flex items-center justify-center gap-2 mt-4 mb-2">
+                  <button 
+                    @click="decreaseQuantity(product)"
+                    class="w-8 h-8 rounded-md bg-blue-600 text-white hover:bg-blue-700 flex items-center justify-center"
+                  >-</button>
+                  <input 
+                    type="number" 
+                    v-model="quantities[product.id]" 
+                    min="0"
+                    class="w-12 h-8 text-center border border-gray-300 rounded-md focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+                  />
+                  <button 
+                    @click="increaseQuantity(product)"
+                    class="w-8 h-8 rounded-md bg-blue-600 text-white hover:bg-blue-700 flex items-center justify-center"
+                  >+</button>
+                </div>
+                
+                <!-- Add to Cart Button with hover effect -->
+                <div class="mt-auto pt-2">
+                  <button 
+                    @click="addToCart(product)" 
+                    class="w-full py-2 rounded-md text-white text-sm font-medium transition-all duration-300 relative overflow-hidden add-to-cart-btn"
+                  >
+                    <span class="relative z-10">Add to Cart</span>
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Pagination -->
+          <div v-if="!loading && totalItems > 0" class="flex justify-center my-8">
+            <PaginationOption
+              :currentPage="currentPage"
+              :itemsPerPage="itemsPerPage"
+              :totalItems="totalItems"
+              :itemsPerPageOptions="[10, 20, 50, 100]"
+              @update:currentPage="changePage"
+              @update:itemsPerPage="changePageSize"
+            />
+          </div>
         </div>
       </div>
     </div>
@@ -224,7 +241,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, watch } from 'vue'
 import api from '@/services/api'
 import { useRouter } from 'vue-router'
 
@@ -235,11 +252,18 @@ import { Autoplay, Pagination } from 'swiper/modules'
 
 import PopupMessage from '@/components/PopupMessage.vue'
 import LoadingOverlay from '@/components/LoadingOverlay.vue'
-import PaginationOption from '@/components/PaginationOption.vue'
+import HamburgerMenu from '@/components/HamburgerMenu.vue'
 import { useFetchUserId } from '@/composables/useFetchUserId.js'
-// import PaginationSeeMore from '@/components/PaginationSeeMore.vue'
+import PaginationOption from '@/components/PaginationOption.vue'
 
 // Data
+// State to track if the menu is open
+const isMenuOpen = ref(false)
+// Handle menu toggle event from HamburgerMenu component
+const handleMenuToggle = (isOpen) => {
+  isMenuOpen.value = isOpen
+}
+
 // Use the composable for fetching user ID
 const { userId, fetchUserId } = useFetchUserId()
 
@@ -254,6 +278,15 @@ const priceRanges = ref([
   { label: '$51 - $100', min: 51, max: 100 },
   { label: '$101+', min: 101, max: Infinity },
 ])
+
+// Pagination state
+const itemsPerPage = ref(10)
+const currentPage = ref(1)
+const totalPages = ref(0)
+const totalItems = ref(0)
+const categoriesPage = ref(1)
+const subCategoriesPage = ref(1)
+const itemsPerFilterPage = 10
 
 // Swiper slides data
 const slides = ref([
@@ -274,118 +307,154 @@ const userImage = ref(null) // Placeholder for user image
 
 // Filter State
 const searchQuery = ref('')
+const searchTimeout = ref(null)
 const selectedCategories = ref([])
 const selectedBrands = ref([])
 const selectedPriceRange = ref(priceRanges.value[0]) // Default to "All"
 
 // Quantity State
 const quantities = ref({})
-const cartTotalQuantity = ref(0);
+const cartTotalQuantity = ref(0)
 
 // Vue Router for redirection
 const router = useRouter()
 const popupRef = ref(null)
 const loading = ref(false)
 const durationWait = 1000 // 1 second
-// const userId = ref(null)
 
-// Pagination state
-const itemsPerPage = ref(10)
-const currentPage = ref(1)
-const categoriesPage = ref(1)
-const subCategoriesPage = ref(1)
-const itemsPerFilterPage = 10
+// Debounce search to prevent excessive API calls
+const debounceSearch = () => {
+  if (searchTimeout.value) clearTimeout(searchTimeout.value)
+  searchTimeout.value = setTimeout(() => {
+    currentPage.value = 1 // Reset to first page on new search
+    fetchProducts()
+  }, 500)
+}
 
-// Method
-// Fetch data from API
-const fetchData = async () => {
+// Method to fetch products with server-side pagination and filtering
+const fetchProducts = async () => {
+  loading.value = true
   try {
-    // Fetch Products
-    const productResponse = await api.get('/product') // Token is included automatically
-    products.value = productResponse.data.map((product) => ({
-      id: product.id,
-      name: product.name,
-      price: product.price,
-      description: product.description,
-      imageUrl: product.imageUrl,
-      storeName: product.storeName,
-      discountAmount: product.discountAmount,
-      subCategoryId: product.subCategoryId,
-      categoryId: product.categoryId,
-    }))
-
-    // Fetch Categories
-    const categoryResponse = await api.get('/category') // Token is included automatically
-    categories.value = categoryResponse.data
-
-    // Fetch SubCategories
-    const subCategoryResponse = await api.get('/subcategory') // Token is included automatically
-    subCategories.value = subCategoryResponse.data
-
+    // Build query parameters
+    const params = new URLSearchParams()
+    params.append('pageNumber', currentPage.value)
+    params.append('pageSize', itemsPerPage.value)
+    
+    // Add search query if present
+    if (searchQuery.value) {
+      params.append('searchQuery', searchQuery.value)
+    }
+    
+    // Add category filters if selected
+    if (selectedCategories.value.length > 0) {
+      params.append('categoryIds', selectedCategories.value.join(','))
+    }
+    
+    // Add subcategory filters if selected
+    if (selectedBrands.value.length > 0) {
+      params.append('subCategoryIds', selectedBrands.value.join(','))
+    }
+    
+    // Add price range filter if selected
+    if (selectedPriceRange.value && selectedPriceRange.value.label !== 'All') {
+      params.append('minPrice', selectedPriceRange.value.min)
+      params.append('maxPrice', selectedPriceRange.value.max)
+    }
+    
+    // Make API request with query parameters
+    const response = await api.get(`/product?${params.toString()}`)
+    console.log('Fetched products:', response.data)
+    
+    // Update products and pagination data
+    products.value = response.data.products
+    totalItems.value = response.data.totalCount
+    totalPages.value = response.data.totalPages
+    
     // Initialize quantities for each product
     products.value.forEach((product) => {
-      quantities.value[product.id] = 0
+      if (!quantities.value[product.id]) {
+        quantities.value[product.id] = 0
+      }
     })
+    console.log('Quantities initialized:', quantities.value)
   } catch (error) {
-    // console.error('Error fetching data:', error)
-    popupRef.value.show('Failed to fetch data. Please try again.', 'error')
+    console.error('Error fetching products:', error)
+    popupRef.value.show('Failed to fetch products. Please try again.', 'error')
     if (error.response?.status === 401) {
       popupRef.value.show('Unauthorized. Redirecting to login...', 'error')
       router.push('/')
     }
+  } finally {
+    loading.value = false
   }
 }
 
-// Computed Property for Filtered Products
-const filteredProducts = computed(() => {
-  return products.value.filter((product) => {
-    const matchesSearchQuery = product.name.toLowerCase().includes(searchQuery.value.toLowerCase())
+// Fetch categories and subcategories 
+const fetchCategoriesAndSubcategories = async () => {
+  try {
+    // Fetch Categories
+    const categoryResponse = await api.get('/category')
+    categories.value = categoryResponse.data
 
-    const matchesCategory =
-      selectedCategories.value.length === 0 || selectedCategories.value.includes(product.categoryId)
+    // Fetch SubCategories
+    const subCategoryResponse = await api.get('/subcategory')
+    subCategories.value = subCategoryResponse.data
+  } catch (error) {
+    console.error('Error fetching categories/subcategories:', error)
+    popupRef.value.show('Failed to fetch filters. Please try again.', 'error')
+  }
+}
 
-    const matchesSubCategory =
-      selectedBrands.value.length === 0 || selectedBrands.value.includes(product.subCategoryId)
-
-    const matchesPriceRange =
-      !selectedPriceRange.value ||
-      (product.price >= selectedPriceRange.value.min &&
-        product.price <= selectedPriceRange.value.max)
-
-    return matchesSearchQuery && matchesCategory && matchesSubCategory && matchesPriceRange
-  })
-})
-// Apply Filters (Trigger Recalculation)
+// Apply Filters
 const applyFilters = () => {
-  // This method exists to trigger recalculation when filters change.
+  currentPage.value = 1 // Reset to first page when filters change
+  fetchProducts()
+}
+
+// Pagination controls
+// Function to change page
+const changePage = (page) => {
+  currentPage.value = page
+  fetchProducts()
+  // Scroll to top of products
+  window.scrollTo({
+    top: 0,
+    behavior: 'smooth'
+  })
+}
+
+// Function to change page size
+const changePageSize = (size) => {
+  itemsPerPage.value = size
+  currentPage.value = 1 // Reset to first page when page size changes
+  fetchProducts()
 }
 
 // BUTTON QTY: Methods to Handle Quantity Changes
 const increaseQuantity = (product) => {
   quantities.value[product.id]++
 }
+
 const decreaseQuantity = (product) => {
   if (quantities.value[product.id] > 0) {
     quantities.value[product.id]--
   }
 }
 
-// CART: Computed Property for Total Quantity for Cart
+// CART: Update cart total quantity
 const updateCartTotalQuantity = () => {
   try {
-    const cart = JSON.parse(localStorage.getItem('cart')) || [];
+    const cart = JSON.parse(localStorage.getItem('cart')) || []
     cartTotalQuantity.value = cart
-      .filter((item) => item.userId === userId.value) // Filter items by userId  
-      .reduce((total, item) => total + item.quantity, 0);
+      .filter((item) => item.userId === userId.value)
+      .reduce((total, item) => total + item.quantity, 0)
   } catch (error) {
-    popupRef.value.show('Fail to Add Or Update to Cart', 'error')
-    console.error('Error reading cart from localStorage:', error);
-    cartTotalQuantity.value = 0;
+    console.error('Error reading cart from localStorage:', error)
+    cartTotalQuantity.value = 0
   }
-};
+}
 
-
-// BUTTON Add to Cart: when user input quantity and click add to cart
+// Add to Cart
 const addToCart = (product) => {
   const qty = quantities.value[product.id]
   if (!qty || qty <= 0) {
@@ -393,7 +462,6 @@ const addToCart = (product) => {
     return
   }
   
-  console.log('User ID:', userId.value)
   const cart = JSON.parse(localStorage.getItem('cart')) || []
   const existing = cart.find((item) => item.id === product.id && item.userId === userId.value)
 
@@ -403,15 +471,16 @@ const addToCart = (product) => {
     cart.push({
       id: product.id,
       name: product.name,
-      price: product.price - (product.discountAmount / 100) * product.price,
-      discountAmount: product.discountAmount,
+      price: product.price - (product.discountPercentage / 100) * product.price,
+      discountPercentage: product.discountPercentage,
+      storeId: product.storeId,
       storeName: product.storeName,
       imageUrl: product.imageUrl,
       quantity: qty,
       userId: userId.value,
     })
-    console.log('cart', cart)
   }
+  
   // Save updated cart to localStorage
   localStorage.setItem('cart', JSON.stringify(cart))
 
@@ -419,10 +488,13 @@ const addToCart = (product) => {
   updateCartTotalQuantity()
 
   // Show success message
-  popupRef.value.show(`${quantities.value[product.id]} ${product.name} added to cart`, 'success') 
+  popupRef.value.show(`${qty} ${product.name} added to cart`, 'success')
+
+  // Reset quantity for the product
+  quantities.value[product.id] = 0
 }
 
-// BUTTON: Navigate to Cart Page
+// Navigate to Cart Page
 const navigateToCart = () => {
   loading.value = true
   setTimeout(() => {
@@ -431,70 +503,57 @@ const navigateToCart = () => {
   }, durationWait)
 }
 
-// Hamburger Menu Toggle (Placeholder for future functionality)
-const toggleHamburger = () => {
-  // Placeholder for hamburger menu functionality
-  console.log('Hamburger menu toggled')
-}
-
-// PAGINATION : Computed properties for paginated data
-const paginatedProducts = computed(() => {
-  const start = (currentPage.value - 1) * itemsPerPage.value
-  const end = start + itemsPerPage.value
-  return filteredProducts.value.slice(start, end)
-})
+// Computed properties for paginated filter data
 const paginatedCategories = computed(() => {
-  // const start = (categoriesPage.value - 1) * itemsPerFilterPage
-  // const end = start + itemsPerFilterPage
   return categories.value.slice(0, categoriesPage.value * itemsPerFilterPage)
 })
+
 const paginatedSubCategories = computed(() => {
-  // const start = (subCategoriesPage.value - 1) * itemsPerFilterPage
-  // const end = start + itemsPerFilterPage
   return subCategories.value.slice(0, subCategoriesPage.value * itemsPerFilterPage)
 })
 
-// Methods for pagination controls
-// const nextPage = () => {
-//   if (currentPage.value < totalPages.value) currentPage.value++
-// }
-// const prevPage = () => {
-//   if (currentPage.value > 1) currentPage.value--
-// }
-const resetPagination = () => {
-  currentPage.value = 1
-}
-
-// Total pages for categories, subcategories, and products
-// const totalPages = computed(() => Math.ceil(filteredProducts.value.length / itemsPerPage.value))
+// Total pages for categories, subcategories
 const totalCategoriesPages = computed(() => Math.ceil(categories.value.length / itemsPerFilterPage))
-const totalSubCategoriesPages = computed(() =>
-  Math.ceil(subCategories.value.length / itemsPerFilterPage),
-)
+const totalSubCategoriesPages = computed(() => Math.ceil(subCategories.value.length / itemsPerFilterPage))
 
+// Load more categories/subcategories
 const loadMoreCategories = () => {
-  // if (categoriesPage.value < totalCategoriesPages) categoriesPage.value++
   categoriesPage.value++
 }
+
 const loadMoreSubCategories = () => {
-  // if (subCategoriesPage.value < totalSubCategoriesPages) subCategoriesPage.value++
   subCategoriesPage.value++
 }
-// END PAGINATION
 
-// Automatically fetch data when the page is loaded
-onMounted(() => {
-  fetchUserId() // Fetch user ID when the component is mounted
-  fetchData()
-  // Initialize cart quantity from localStorage
-  updateCartTotalQuantity();
+// Watch for changes in filters and pagination
+watch(
+  [() => selectedCategories.value, () => selectedBrands.value, () => selectedPriceRange.value],
+  () => {
+    applyFilters()
+  }
+)
+
+// Initialize data on component mount
+onMounted(async () => {
+  await fetchUserId() // Fetch user ID
+  updateCartTotalQuantity() // Initialize cart
+  
+  // Load categories and subcategories
+  await fetchCategoriesAndSubcategories()
+  
+  // Initial product fetch
+  await fetchProducts()
 })
 </script>
 
 <style scoped>
 /* Custom styles for the Add to Cart button with left-to-right transition */
 .add-to-cart-btn {
-  background-color: #6b7280; /* Gray base color */
+  background: linear-gradient(45deg, #3b82f6, #8b5cf6);
+}
+
+.add-to-cart-btn:hover {
+  background: linear-gradient(45deg, #2563eb, #7c3aed);
 }
 
 .add-to-cart-btn::before {
@@ -504,7 +563,7 @@ onMounted(() => {
   left: 0;
   right: 0;
   bottom: 0;
-  background-color: #10b981; /* Green color for hover */
+  background-color: #10b981;
   width: 0%;
   transition: width 0.3s ease;
   z-index: 0;
@@ -512,13 +571,5 @@ onMounted(() => {
 
 .add-to-cart-btn:hover::before {
   width: 100%;
-}
-
-/* Line clamp for product description */
-.line-clamp-2 {
-  display: -webkit-box;
-  -webkit-line-clamp: 2;
-  -webkit-box-orient: vertical;
-  overflow: hidden;
 }
 </style>
