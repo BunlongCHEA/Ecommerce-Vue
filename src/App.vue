@@ -1,10 +1,15 @@
 <script setup>
 import { RouterView } from 'vue-router'
+// import AdminChatWidget from './components/AdminChatWidget.vue';
+import AdminChatWidget from '@/components/AdminChatWidget.vue'
 </script>
 
 <template>
   <div id="app" class="flex justify-center items-center min-h-screen min-w-screen bg-gradient-to-b from-blue-500 via-white to-purple-600">
     <RouterView />
+
+    <!-- Admin Chat Widget - appears on all pages except auth pages -->
+     <AdminChatWidget />
   </div>
 </template>
 

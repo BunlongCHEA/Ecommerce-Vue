@@ -14,6 +14,7 @@ import OrderDetail from '@/views/OrderDetail.vue'
 import CouponPage from '@/views/CouponPage.vue'
 import AdminOrderDetail from '@/views/AdminOrderDetail.vue'
 import AdminProduct from '@/views/AdminProduct.vue'
+import ProductDetailPage from '@/views/ProductDetailPage.vue'
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -55,6 +56,12 @@ const router = createRouter({
       path: '/product',
       name: 'product',
       component: ProductPage,
+    },
+    {
+      path: '/product/:id',
+      name: 'ProductDetail',
+      component: ProductDetailPage,
+      props: true // This allows the route params to be passed as props
     },
     {
       path: '/cart',

@@ -381,7 +381,7 @@
     </div> -->
 
     <!-- Excel Upload Component -->
-    <ExcelUploadComponent
+    <ExcelUpload
       v-model="showExcelUploadModal"
       :upload-title="'Upload Product Excel File'"
       :preview-title="'Review Products'"
@@ -585,7 +585,7 @@ import BackButton from '@/components/BackButton.vue';
 import HamburgerMenu from '@/components/HamburgerMenu.vue';
 import ConfirmDelete from '@/components/ConfirmDelete.vue';
 import PaginationOption from '@/components/PaginationOption.vue';
-import ExcelUploadComponent from '@/components/ExcelUploadComponent.vue';
+import ExcelUpload from '@/components/ExcelUpload.vue';
 import { useFetchUserId } from "@/composables/useFetchUserId";
 
 // Menu state

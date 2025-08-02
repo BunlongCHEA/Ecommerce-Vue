@@ -158,10 +158,12 @@
             <div 
               v-for="product in products" 
               :key="product.id" 
-              class="bg-white rounded-lg shadow-sm overflow-hidden flex flex-col"
+              class="bg-white rounded-lg shadow-sm overflow-hidden flex flex-col hover:shadow-md transition-shadow duration-300"
             >
               <!-- Product Image (Bigger) -->
-              <div class="w-full h-96 overflow-hidden">
+              <div class="w-full h-96 overflow-hidden cursor-pointer"
+                @click="navigateToProductDetail(product.id)"
+              >
                 <img 
                   :src="product.imageUrl" 
                   :alt="product.name" 
@@ -173,9 +175,14 @@
               <div class="p-4 flex flex-col h-full">
                 <!-- Product Info and Price in split layout -->
                 <div class="flex justify-between">
-                  <!-- Left: Product Info -->
-                  <div class="flex-1 pr-2">
-                    <h4 class="text-lg font-medium text-gray-800 mb-1">{{ product.name }}</h4>
+                  <!-- Left: Product Info (Clickable for detail view) -->
+                  <div 
+                    class="flex-1 pr-2 cursor-pointer"
+                    @click="navigateToProductDetail(product.id)"
+                  >
+                    <h4 class="text-lg font-medium text-gray-800 mb-1 hover:text-blue-600 transition-colors">
+                      {{ product.name }}
+                    </h4>
                     <p class="text-xs text-gray-500 mb-1">Store: {{ product.storeName }}</p>
                     <p class="text-sm text-gray-600 line-clamp-2">{{ product.description }}</p>
                   </div>
@@ -191,23 +198,34 @@
                     >-{{ product.discountPercentage }}%</span>
                   </div>
                 </div>
+
+                <!-- Quick Actions Row -->
+                <div class="flex items-center justify-between mt-4 mb-2">
+                  <!-- View Details Button -->
+                  <button 
+                    @click="navigateToProductDetail(product.id)"
+                    class="text-sm text-blue-600 hover:text-blue-800 font-medium transition-colors"
+                  >
+                    View Details
+                  </button>
                 
-                <!-- Quantity Controls -->
-                <div class="flex items-center justify-center gap-2 mt-4 mb-2">
-                  <button 
-                    @click="decreaseQuantity(product)"
-                    class="w-8 h-8 rounded-md bg-blue-600 text-white hover:bg-blue-700 flex items-center justify-center"
-                  >-</button>
-                  <input 
-                    type="number" 
-                    v-model="quantities[product.id]" 
-                    min="0"
-                    class="w-12 h-8 text-center border border-gray-300 rounded-md focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
-                  />
-                  <button 
-                    @click="increaseQuantity(product)"
-                    class="w-8 h-8 rounded-md bg-blue-600 text-white hover:bg-blue-700 flex items-center justify-center"
-                  >+</button>
+                  <!-- Quantity Controls -->
+                  <div class="flex items-center gap-1">
+                    <button 
+                      @click="decreaseQuantity(product)"
+                      class="w-6 h-6 rounded-md bg-blue-600 text-white hover:bg-blue-700 flex items-center justify-center text-sm"
+                    >-</button>
+                    <input 
+                      type="number" 
+                      v-model="quantities[product.id]" 
+                      min="0"
+                      class="w-10 h-6 text-center border border-gray-300 rounded-md text-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+                    />
+                    <button 
+                      @click="increaseQuantity(product)"
+                      class="w-6 h-6 rounded-md bg-blue-600 text-white hover:bg-blue-700 flex items-center justify-center text-sm"
+                    >+</button>
+                  </div>
                 </div>
                 
                 <!-- Add to Cart Button with hover effect -->
@@ -500,6 +518,15 @@ const navigateToCart = () => {
   setTimeout(() => {
     loading.value = false
     router.push('/cart')
+  }, durationWait)
+}
+
+// Navigate to Product Detail Page
+const navigateToProductDetail = (productId) => {
+  loading.value = true
+  setTimeout(() => {
+    loading.value = false
+    router.push(`/product/${productId}`)
   }, durationWait)
 }
 
