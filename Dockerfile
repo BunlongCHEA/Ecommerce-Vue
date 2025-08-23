@@ -25,18 +25,11 @@ COPY nginx.conf /etc/nginx/nginx.conf
 # Copy built application
 COPY --from=build-stage /app/dist /usr/share/nginx/html
 
-# Create non-root user
-RUN addgroup -g 1001 -S nginx && \
-    adduser -S -D -H -u 1001 -h /var/cache/nginx -s /sbin/nologin -G nginx -g nginx nginx
-
 # Set permissions
 RUN chown -R nginx:nginx /usr/share/nginx/html && \
     chown -R nginx:nginx /var/cache/nginx && \
     chown -R nginx:nginx /var/log/nginx && \
-    chown -R nginx:nginx /etc/nginx/conf.d
-
-# Create nginx PID directory
-RUN touch /var/run/nginx.pid && \
+    chown -R nginx:nginx /etc/nginx/conf.d && \
     chown -R nginx:nginx /var/run/nginx.pid
 
 USER nginx
