@@ -25,12 +25,8 @@ COPY nginx.conf /etc/nginx/nginx.conf
 # Copy built application
 COPY --from=build-stage /app/dist /usr/share/nginx/html
 
-# Set permissions
-RUN chown -R nginx:nginx /usr/share/nginx/html && \
-    chown -R nginx:nginx /var/cache/nginx && \
-    chown -R nginx:nginx /var/log/nginx && \
-    chown -R nginx:nginx /etc/nginx/conf.d && \
-    chown -R nginx:nginx /var/run/nginx.pid
+# Only set ownership of the web content
+RUN chown -R nginx:nginx /usr/share/nginx/html
 
 USER nginx
 
