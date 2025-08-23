@@ -1,5 +1,7 @@
 <template>
   <div>
+    <LoadingOverlay :show="loading" />
+
     <!-- Hamburger Button -->
     <button
       class="fixed top-4 left-4 z-50 text-4xl text-black hover:text-gray-300 transition-colors duration-300"
@@ -31,10 +33,11 @@
             :key="item.name"
             class="group"
           >
+          <!-- @click="toggleHamburger" -->
             <router-link
               :to="item.path"
               class="flex items-center gap-4 px-4 py-3 transition-all duration-300 hover:bg-gray-700 hover:shadow-lg"
-              @click="toggleHamburger"
+              @click.prevent="navigateWithLoading(item.path)"
             >
               <!-- Icon -->
               <div class="w-8 flex items-center justify-center">
@@ -70,9 +73,17 @@ import { ref, computed, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { useFetchUserId } from '@/composables/useFetchUserId.js'
 import { handleLogout } from '@/services/api.js'
+import LoadingOverlay from '@/components/LoadingOverlay.vue'
+
+// Initialize router
+const router = useRouter()
 
 // State to track menu open/close
 const isMenuOpen = ref(false)
+
+// State to track loading status
+const loading = ref(false)
+const durationWait = 1000 // 1 second
 
 // Define emits
 const emit = defineEmits(['menu-toggle'])
@@ -111,19 +122,46 @@ const filteredRoutes = computed(() => {
   return routes.filter(route => (route.adminOnly ? role.value === 'Admin' : true))
 })
 
+const navigateWithLoading = (path) => {
+  const currentPath = router.currentRoute.value.path
+  
+  // Always show loading first
+  loading.value = true
+  toggleHamburger()
+  
+  if (currentPath === path) {
+    // Same route
+    setTimeout(() => {
+      loading.value = false
+    }, durationWait)
+  } else {
+    // Different route
+    router.push(path)
+    setTimeout(() => {
+      loading.value = false
+      // console.log(`Navigated to ${path}`)
+    }, durationWait)
+  }
+}
+
 // Logout function
-const router = useRouter() // Access the router instance
 const logout = () => {
-  console.log('Logging out & removed token, localStorage, and cookies')
-  handleLogout() // Call the logout handler from `api.js`
-  
-  localStorage.removeItem('userId')
-  console.log('User ID:', userId.value)
-  console.log('Role:', role.value)
-  console.log('AuthToken:', localStorage.getItem('authToken'))
-  console.log('Document Cookies:', document.cookie)
-  
-  router.push('/') // Redirect to the login page
+  loading.value = true
+
+  setTimeout(() => {
+    console.log('Logging out & removed token, localStorage, and cookies')
+    handleLogout() // Call the logout handler from `api.js`
+    
+    localStorage.removeItem('userId')
+    console.log('User ID:', userId.value)
+    console.log('Role:', role.value)
+    console.log('AuthToken:', localStorage.getItem('authToken'))
+    console.log('Document Cookies:', document.cookie)
+    
+    router.push('/') // Redirect to the login page
+
+    loading.value = false
+  }, durationWait)
 }
 
 // Fetch user data on component mount

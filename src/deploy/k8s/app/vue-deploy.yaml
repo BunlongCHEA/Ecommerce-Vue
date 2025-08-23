@@ -1,0 +1,120 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: vue-ecommerce-app
+  namespace: production
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: vue-ecommerce-app
+  template:
+    metadata:
+      labels:
+        app: vue-ecommerce-app
+    spec:
+      containers:
+      - name: vue-app
+        image: ${CI_REGISTRY_IMAGE}:${CI_COMMIT_SHA}
+        ports:
+        - containerPort: 8080
+        env:
+        - name: NODE_ENV
+          value: "production"
+        - name: APP_API_URL
+          value: "https://ecommerceapi.bunlong.site/api"
+        - name: APP_WEBSOCKET_URL
+          value: "https://ecommerceapi.bunlong.site"
+        resources:
+          requests:
+            memory: "128Mi"
+            cpu: "100m"
+          limits:
+            memory: "256Mi"
+            cpu: "200m"
+        livenessProbe:
+          httpGet:
+            path: /
+            port: 8080
+          initialDelaySeconds: 30
+          periodSeconds: 10
+        readinessProbe:
+          httpGet:
+            path: /
+            port: 8080
+          initialDelaySeconds: 5
+          periodSeconds: 5
+      imagePullSecrets:
+      - name: gitlab-registry-secret
+
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: gitlab-registry-secret
+  namespace: production
+type: kubernetes.io/dockerconfigjson
+data:
+  .dockerconfigjson: ${DOCKER_CONFIG_JSON}
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: vue-ecommerce-service
+  namespace: production
+spec:
+  selector:
+    app: vue-ecommerce-app
+  ports:
+    - protocol: TCP
+      port: 80
+      targetPort: 8080
+  type: ClusterIP
+
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: vue-ecommerce-ingress
+  namespace: production
+  annotations:
+    # Use NGINX Ingress Controller
+    kubernetes.io/ingress.class: "nginx"
+    
+    # Cloudflare specific annotations
+    nginx.ingress.kubernetes.io/proxy-body-size: "50m"
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "600"
+    nginx.ingress.kubernetes.io/proxy-send-timeout: "600"
+    nginx.ingress.kubernetes.io/proxy-connect-timeout: "600"
+
+    # SSL and security
+    nginx.ingress.kubernetes.io/ssl-redirect: "false"  # Let Cloudflare handle HTTPS redirect
+    nginx.ingress.kubernetes.io/force-ssl-redirect: "false"  # Let Cloudflare handle HTTPS redirect
+
+    # Custom headers for proper protocol detection
+    nginx.ingress.kubernetes.io/configuration-snippet: |
+      more_set_headers "X-Forwarded-Proto $scheme";
+      more_set_headers "X-Forwarded-Port $server_port";
+      more_set_headers "X-Real-IP $remote_addr";
+      
+      # Security headers
+      more_set_headers "X-Frame-Options: SAMEORIGIN";
+      more_set_headers "X-Content-Type-Options: nosniff";
+      more_set_headers "X-XSS-Protection: 1; mode=block";
+spec:
+  tls:
+  - hosts:
+    - ecommercevue.bunlong.site
+    secretName: vue-ecommerce-tls
+  rules:
+  - host: ecommercevue.bunlong.site
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: vue-ecommerce-service
+            port:
+              number: 80

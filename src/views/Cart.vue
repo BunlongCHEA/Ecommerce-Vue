@@ -244,26 +244,26 @@ const deleteStoreCart = (storeId) => {
 const goToProducts = () => {
   loading.value = true
   setTimeout(() => {
-    loading.value = false
     router.push('/product')
+    loading.value = false
   }, durationWait)
 }
 
 const goToStoreCart = (storeId) => {
   loading.value = true
   setTimeout(() => {
-    loading.value = false
     router.push(`/cartitem?storeId=${storeId}`)
+    loading.value = false
   }, durationWait)
 }
 
-const checkoutAll = () => {
-  loading.value = true
-  setTimeout(() => {
-    loading.value = false
-    router.push('/checkout')
-  }, durationWait)
-}
+// const checkoutAll = () => {
+//   loading.value = true
+//   setTimeout(() => {
+//     router.push('/checkout')
+//     loading.value = false
+//   }, durationWait)
+// }
 
 // Load cart data on mount
 onMounted(() => {

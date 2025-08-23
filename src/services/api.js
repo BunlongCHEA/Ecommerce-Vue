@@ -15,7 +15,7 @@ const api = axios.create({
   headers: {
     'Content-Type': 'application/json',
   },
-  timeout: 5000, // Timeout for requests.If a request takes longer than 5 seconds, it will be automatically canceled.
+  timeout: 10000, // Timeout for requests.If a request takes longer than 5 seconds, it will be automatically canceled.
 })
 
 // Function to set the Authorization token

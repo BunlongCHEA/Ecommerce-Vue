@@ -15,6 +15,7 @@ import CouponPage from '@/views/CouponPage.vue'
 import AdminOrderDetail from '@/views/AdminOrderDetail.vue'
 import AdminProduct from '@/views/AdminProduct.vue'
 import ProductDetailPage from '@/views/ProductDetailPage.vue'
+import UserProfile from '@/views/UserProfile.vue'
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -51,6 +52,14 @@ const router = createRouter({
       path: '/reset-password-sent',
       name: 'reset-password-sent',
       component: ResetPasswordSent,
+    },
+    {
+      path: '/userprofile',
+      name: 'user-profile',
+      component: UserProfile,
+      meta: {
+        requiresAuth: true // This route requires authentication
+      }
     },
     {
       path: '/product',

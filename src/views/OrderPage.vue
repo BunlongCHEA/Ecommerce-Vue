@@ -180,8 +180,8 @@ const fetchOrders = async () => {
 const goToOrderDetail = (orderId) => {
   loading.value = true
   setTimeout(() => {
-    loading.value = false
     router.push(`/order/${orderId}`)
+    loading.value = false
   }, durationWait)
 }
 

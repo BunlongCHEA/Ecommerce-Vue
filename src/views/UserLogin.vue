@@ -153,8 +153,8 @@ const handleLogin = async () => {
 const navigateToRegister = () => {
   loading.value = true
   setTimeout(() => {
-    loading.value = false
     router.push('/register')
+    loading.value = false
   }, durationWait)
 }
 </script>

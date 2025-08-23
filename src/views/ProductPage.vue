@@ -25,7 +25,10 @@
         </button>
 
         <!-- User Profile Button -->
-        <button class="text-4xl text-white hover:text-gray-200 transition-colors">
+        <button
+          @click="navigateToProfile" 
+          class="text-4xl text-white hover:text-gray-200 transition-colors"
+        >
           <img v-if="userImage" :src="userImage" alt="User Profile" class="w-8 h-8 rounded-full" />
           <i v-else>👤</i>
         </button>
@@ -38,7 +41,7 @@
       :class="{ 'translate-x-64': isMenuOpen }"
     >
       <!-- Top: Swiper Section -->
-      <div class="w-full max-h-[350px] my-[50px] flex justify-center">
+      <div v-if="slides.length > 0" class="w-full max-h-[350px] my-[50px] flex justify-center">
         <Swiper
           :modules="[Autoplay, Pagination]"
           :autoplay="{ delay: 5000, disableOnInteraction: false }"
@@ -46,13 +49,61 @@
           loop="true"
           class="w-full max-w-[1000px] rounded-lg overflow-hidden"
         >
-          <SwiperSlide v-for="(slide, index) in slides" :key="index">
+          <SwiperSlide v-for="(slide, index) in slides" :key="slide.eventId">
+            <div 
+              class="w-full cursor-pointer relative group"
+              @click="handleSlideClick(slide.eventId, slide.eventName)"
+            >
+              <img 
+                :src="slide.imageUrl" 
+                :alt="slide.altText" 
+                class="w-full h-auto rounded-lg object-cover transition-transform duration-300 group-hover:scale-105"
+                @error="handleImageError($event, slide)"
+              />
+              <!-- Event overlay -->
+              <div class="absolute inset-0 bg-black bg-opacity-40 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center justify-center">
+                <div class="text-white text-center">
+                  <h3 class="text-2xl font-bold mb-2">{{ slide.eventName }}</h3>
+                  <p class="text-sm">{{ slide.description || 'Click to see event products' }}</p>
+                </div>
+              </div>
+            </div>
+          </SwiperSlide>
+          <!-- <SwiperSlide v-for="(slide, index) in slides" :key="index">
             <div class="w-full">
               <img :src="slide.imageUrl" :alt="slide.altText" class="w-full h-auto rounded-lg object-cover" />
             </div>
-          </SwiperSlide>
+          </SwiperSlide> -->
         </Swiper>
       </div>
+
+      <!-- No Events Message -->
+      <div v-else-if="!loading" class="w-full max-h-[350px] my-[50px] flex justify-center">
+        <div class="w-full max-w-[1000px] bg-gray-100 rounded-lg p-8 text-center">
+          <p class="text-gray-500 text-lg">No active events at the moment</p>
+        </div>
+      </div>
+
+      <!-- Event Filter Indicator -->
+      <div v-if="selectedEventId" class="w-full px-4 mb-4">
+        <div class="bg-blue-100 border border-blue-300 rounded-lg p-3 flex items-center justify-between">
+          <div class="flex items-center">
+            <svg class="w-5 h-5 text-blue-600 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 002 2v12a2 2 0 002 2z"></path>
+            </svg>
+            <span class="text-blue-800 font-medium">
+              Showing products for: {{ events.find(e => e.id === selectedEventId)?.name }}
+            </span>
+          </div>
+          <button 
+            @click="clearEventFilter"
+            class="text-blue-600 hover:text-blue-800 font-medium text-sm transition-colors"
+          >
+            Clear Event Filter
+          </button>
+        </div>
+      </div>
+
 
       <!-- Product Content -->
       <div class="flex flex-row gap-5 px-4">
@@ -307,18 +358,20 @@ const subCategoriesPage = ref(1)
 const itemsPerFilterPage = 10
 
 // Swiper slides data
-const slides = ref([
-  {
-    imageUrl:
-      'https://images.vexels.com/content/194698/preview/shop-online-slider-template-4f2c60.png',
-    altText: 'Slide 1',
-  },
-  {
-    imageUrl: 'https://i.pinimg.com/736x/b6/89/96/b68996b0aeb13339740f961ada455a77.jpg',
-    altText: 'Slide 2',
-  },
-  { imageUrl: 'https://pixosoft.com/images/sliders/pixosoft-slider-3.jpg', altText: 'Slide 3' },
-])
+const slides = ref([])
+const events = ref([])
+// const slides = ref([
+//   {
+//     imageUrl:
+//       'https://images.vexels.com/content/194698/preview/shop-online-slider-template-4f2c60.png',
+//     altText: 'Slide 1',
+//   },
+//   {
+//     imageUrl: 'https://i.pinimg.com/736x/b6/89/96/b68996b0aeb13339740f961ada455a77.jpg',
+//     altText: 'Slide 2',
+//   },
+//   { imageUrl: 'https://pixosoft.com/images/sliders/pixosoft-slider-3.jpg', altText: 'Slide 3' },
+// ])
 
 // Header
 const userImage = ref(null) // Placeholder for user image
@@ -379,6 +432,11 @@ const fetchProducts = async () => {
       params.append('maxPrice', selectedPriceRange.value.max)
     }
     
+    // Add eventId parameter if an event is selected
+    if (selectedEventId.value) {
+      params.append('eventId', selectedEventId.value.toString())
+    }
+
     // Make API request with query parameters
     const response = await api.get(`/product?${params.toString()}`)
     console.log('Fetched products:', response.data)
@@ -404,6 +462,58 @@ const fetchProducts = async () => {
     }
   } finally {
     loading.value = false
+  }
+}
+
+// Add this method to handle broken images
+const handleImageError = (event, slide) => {
+  console.warn(`Failed to load image for event: ${slide.eventName}`)
+  // Set a fallback image
+  event.target.src = 'https://images.vexels.com/content/194698/preview/shop-online-slider-template-4f2c60.png' // Add a default image
+}
+
+// Add these reactive variables after existing refs
+const selectedEventId = ref(null)
+
+// Add method to handle slide click
+const handleSlideClick = (eventId, eventName) => {
+  selectedEventId.value = eventId
+  console.log(`Loading products for event: ${eventName} (ID: ${eventId})`)
+  
+  // Reset other filters when selecting an event for better UX
+  selectedCategories.value = []
+  selectedBrands.value = []
+  selectedPriceRange.value = priceRanges.value[0] // Reset to "All"
+  searchQuery.value = ''
+  currentPage.value = 1
+  
+  // Load products for the selected event
+  fetchProducts()
+}
+
+// Add method to clear event filter
+const clearEventFilter = () => {
+  selectedEventId.value = null
+  currentPage.value = 1
+  fetchProducts()
+}
+
+// Add method to load events
+const fetchEvents = async () => {
+  try {
+    const response = await api.get('/event/active') // Get only active events for slides
+    events.value = response.data
+    slides.value = response.data.map(event => ({
+      imageUrl: event.imageUrl,
+      altText: event.name,
+      eventId: event.id,
+      eventName: event.name,
+      description: event.description
+    }))
+  } catch (error) {
+    console.error('Error loading events:', error)
+    // Fallback to empty array if events fail to load
+    slides.value = []
   }
 }
 
@@ -516,8 +626,8 @@ const addToCart = (product) => {
 const navigateToCart = () => {
   loading.value = true
   setTimeout(() => {
-    loading.value = false
     router.push('/cart')
+    loading.value = false
   }, durationWait)
 }
 
@@ -525,8 +635,17 @@ const navigateToCart = () => {
 const navigateToProductDetail = (productId) => {
   loading.value = true
   setTimeout(() => {
-    loading.value = false
     router.push(`/product/${productId}`)
+    loading.value = false
+  }, durationWait)
+}
+
+// Navigate to User Profile Page
+const navigateToProfile = () => {
+  loading.value = true
+  setTimeout(() => {
+    router.push('/userprofile')
+    loading.value = false
   }, durationWait)
 }
 
@@ -562,6 +681,8 @@ watch(
 
 // Initialize data on component mount
 onMounted(async () => {
+  await fetchEvents() // Load events first
+
   await fetchUserId() // Fetch user ID
   updateCartTotalQuantity() // Initialize cart
   

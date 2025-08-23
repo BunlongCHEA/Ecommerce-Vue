@@ -10,25 +10,21 @@
 
     <!-- Header Section with margin-left to make space for hamburger button -->
     <div 
+      v-if="product"
       class="flex justify-between items-center w-full p-4 bg-gradient-to-r from-blue-600 to-purple-600 transition-all duration-500 ease-in-out"
       :class="{ 'translate-x-64': isMenuOpen }"
     >
-      <!-- Left: Back Button -->
-      <!-- <BackButton
-        :buttonLabel="'Back to Products'"
-        :destination="'/product'"
-        :defaultTitle="'Product Management'"
-        :waitDuration="1000"
-      ></BackButton> -->
-      <!-- <button 
-        @click="goBack"
-        class="flex items-center text-white hover:text-gray-200 transition-colors"
-      >
-        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
-        </svg>
-        Back to Products
-      </button> -->
+      <div class="flex items-center gap-4 ml-16">
+          <button 
+          @click="navigateToProduct"
+          class="flex items-center text-white hover:text-gray-200 transition-colors"
+          >
+          <svg class="w-6 h-6 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path>
+          </svg>
+          <span class="text-lg font-medium">{{ product.name }}</span>
+          </button>
+      </div>
 
       <!-- Right: Cart and User Profile -->
       <div class="flex items-center gap-5 ml-auto">
@@ -260,7 +256,7 @@
         <h2 class="text-2xl font-semibold text-gray-900 mb-2">Product not found</h2>
         <p class="text-gray-600 mb-4">The product you're looking for doesn't exist or has been removed.</p>
         <button 
-          @click="goBack"
+          @click="navigateToProduct"
           class="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
         >
           Go Back
@@ -295,6 +291,7 @@ const popupRef = ref(null)
 const product = ref(null)
 const userImage = ref(null)
 const cartTotalQuantity = ref(0)
+const durationWait = 1000 // 1 second
 
 // Product detail state
 const selectedImage = ref('')
@@ -469,12 +466,26 @@ const addToCart = () => {
   quantity.value = 1
 }
 
+// Navigate to Cart Page
 const navigateToCart = () => {
-  router.push('/cart')
+  loading.value = true
+  setTimeout(() => {
+    router.push('/cart')
+    loading.value = false
+  }, durationWait)
 }
 
-const goBack = () => {
-  router.go(-1) // Go back to previous page
+// const goBack = () => {
+//   router.go(-1) // Go back to previous page
+// }
+
+// Navigate to Product Page
+const navigateToProduct = () => {
+  loading.value = true
+  setTimeout(() => {
+    router.push('/product')
+    loading.value = false
+  }, durationWait)
 }
 
 const handleImageError = (event) => {
