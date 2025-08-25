@@ -6,9 +6,9 @@
     <!-- Left side animation (similar to LoginPage.vue) -->
     <div class="w-full md:w-3/5 flex items-center justify-end overflow-hidden animation-container">
       <div id="animation-sub" class="w-full h-full flex items-center -ml-4 md:-ml-8">
-        <!-- :src="animationUrl" -->
+        <!-- src="/animation-ecommerce.json" -->
         <lottie-player
-          src="/animation-ecommerce.json"
+          :src="animationUrl"
           background="transparent"
           speed="1"
           loop
@@ -155,7 +155,7 @@
 
 <script setup>
 import '@lottiefiles/lottie-player'
-// import animationData from '@/assets/animation-ecommerce.json'
+import animationData from '@/assets/animation-ecommerce.json'
 import { ref, onMounted } from 'vue'
 import api from '@/services/api'
 import { useRouter } from 'vue-router'
@@ -175,17 +175,17 @@ const confirmPassword = ref('')
 
 const phoneNumber = ref('') // Full phone number from vue-tel-input (e.g., +123456789)
 
-// const animationUrl = ref('')
+const animationUrl = ref('')
 const router = useRouter()
 const loading = ref(false)
 const popupRef = ref(null)
 const durationWait = 1000 // 1 second
 
 // methods
-// onMounted(() => {
-//   const blob = new Blob([JSON.stringify(animationData)], { type: 'application/json' })
-//   animationUrl.value = URL.createObjectURL(blob)
-// })
+onMounted(() => {
+  const blob = new Blob([JSON.stringify(animationData)], { type: 'application/json' })
+  animationUrl.value = URL.createObjectURL(blob)
+})
 
 const handleRegister = async () => {
   loading.value = true

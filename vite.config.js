@@ -23,4 +23,20 @@ export default defineConfig({
       '@': fileURLToPath(new URL('./src', import.meta.url)),
     },
   },
+  // Include JSON files as assets
+  assetsInclude: ['**/*.json'],
+  build: {
+    rollupOptions: {
+      output: {
+        assetFileNames: (assetInfo) => {
+          // Keep JSON files in root for direct access
+          if (assetInfo.name && assetInfo.name.endsWith('.json')) {
+            return '[name][extname]'
+          }
+          // Other assets go to assets folder with hash
+          return 'assets/[name]-[hash][extname]'
+        }
+      }
+    }
+  }
 })
