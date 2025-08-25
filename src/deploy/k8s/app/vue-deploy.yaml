@@ -44,18 +44,6 @@ spec:
             port: 8080
           initialDelaySeconds: 5
           periodSeconds: 5
-      imagePullSecrets:
-      - name: gitlab-registry-secret
-
----
-apiVersion: v1
-kind: Secret
-metadata:
-  name: gitlab-registry-secret
-  namespace: production
-type: kubernetes.io/dockerconfigjson
-data:
-  .dockerconfigjson: ${DOCKER_CONFIG_JSON}
 
 ---
 apiVersion: v1
