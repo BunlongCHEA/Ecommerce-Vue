@@ -15,7 +15,7 @@ spec:
     spec:
       containers:
       - name: vue-app
-        image: ${CI_REGISTRY_IMAGE}:${CI_COMMIT_SHA}
+        image: registry.gitlab.com/bunlongchea/ecommerce-vue:latest # Update with your registry
         ports:
         - containerPort: 8080
         env:
