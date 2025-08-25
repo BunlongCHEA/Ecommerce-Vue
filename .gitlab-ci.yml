@@ -22,8 +22,8 @@ build:
 
     - sed -i 's|http://localhost:5169|https://ecommerceapi.bunlong.site|g' src/services/chatService.js
 
-    - sed -i 's|@/assets/animation-ecommerce.json|/animation-ecommerce.json|g' src/views/UserLogin.vue
-    - sed -i 's|@/assets/animation-ecommerce.json|/animation-ecommerce.json|g' src/views/UserRegister.vue
+    # - sed -i 's|@/assets/animation-ecommerce.json|/animation-ecommerce.json|g' src/views/UserLogin.vue
+    # - sed -i 's|@/assets/animation-ecommerce.json|/animation-ecommerce.json|g' src/views/UserRegister.vue
 
     # Verify the connection string was updated
     - cat src/services/api.js | grep "api"
