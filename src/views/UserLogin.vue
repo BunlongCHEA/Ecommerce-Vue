@@ -6,9 +6,9 @@
     <!-- Right side animation (2/3 width) with justify-content: right -->
     <div class="w-full md:w-2/3 flex items-center justify-end overflow-hidden animation-container">
       <div id="animation-sub" class="w-full h-full flex items-center -ml-4 md:-ml-8">
-        <!-- src="/animation-ecommerce.json" -->
+        <!-- src="/animation-ecommerce.json"  --  :src="animationUrl" -->
         <lottie-player
-          :src="animationUrl"
+          src="/animation-ecommerce.json"
           background="transparent"
           speed="1"
           loop
@@ -69,7 +69,7 @@ import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import api, { setAuthToken } from '@/services/api'
 import '@lottiefiles/lottie-player'
-import animationData from '@/assets/animation-ecommerce.json'
+// import animationData from '@/assets/animation-ecommerce.json'
 import LoadingOverlay from '@/components/LoadingOverlay.vue'
 import PopupMessage from '@/components/PopupMessage.vue'
 
@@ -77,7 +77,7 @@ import PopupMessage from '@/components/PopupMessage.vue'
 // const email = ref('')
 const username = ref('')
 const password = ref('')
-const animationUrl = ref('')
+// const animationUrl = ref('')
 const router = useRouter()
 const loading = ref(false)
 // const showMessage = ref(false)
@@ -87,10 +87,10 @@ const popupRef = ref(null)
 const durationWait = 1000 // 1 second
 
 // Methods
-onMounted(() => {
-  const blob = new Blob([JSON.stringify(animationData)], { type: 'application/json' })
-  animationUrl.value = URL.createObjectURL(blob)
-})
+// onMounted(() => {
+//   const blob = new Blob([JSON.stringify(animationData)], { type: 'application/json' })
+//   animationUrl.value = URL.createObjectURL(blob)
+// })
 
 // Show message and stop loading
 // const showPopupMessage = (text, type = 'error') => {
