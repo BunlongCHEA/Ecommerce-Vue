@@ -25,8 +25,13 @@ COPY nginx.conf /etc/nginx/nginx.conf
 # Copy built application
 COPY --from=build-stage /app/dist /usr/share/nginx/html
 
-# Only set ownership of the web content
-RUN chown -R nginx:nginx /usr/share/nginx/html
+# Create temp directories for nginx and set proper permissions
+RUN mkdir -p /tmp/nginx-client-body /tmp/nginx-proxy /tmp/nginx-fastcgi /tmp/nginx-uwsgi /tmp/nginx-scgi && \
+    chown -R nginx:nginx /usr/share/nginx/html && \
+    chown -R nginx:nginx /tmp/nginx-* && \
+    # Create and set permissions for PID file
+    touch /var/run/nginx.pid && \
+    chown nginx:nginx /var/run/nginx.pid
 
 USER nginx
 
