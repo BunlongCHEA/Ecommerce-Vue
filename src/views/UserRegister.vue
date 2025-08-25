@@ -6,8 +6,9 @@
     <!-- Left side animation (similar to LoginPage.vue) -->
     <div class="w-full md:w-3/5 flex items-center justify-end overflow-hidden animation-container">
       <div id="animation-sub" class="w-full h-full flex items-center -ml-4 md:-ml-8">
+        <!-- :src="animationUrl" -->
         <lottie-player
-          :src="animationUrl"
+          src="/animation-ecommerce.json"
           background="transparent"
           speed="1"
           loop

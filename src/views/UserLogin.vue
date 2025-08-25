@@ -6,8 +6,9 @@
     <!-- Right side animation (2/3 width) with justify-content: right -->
     <div class="w-full md:w-2/3 flex items-center justify-end overflow-hidden animation-container">
       <div id="animation-sub" class="w-full h-full flex items-center -ml-4 md:-ml-8">
+        <!-- :src="animationUrl" -->
         <lottie-player
-          :src="animationUrl"
+          src="/animation-ecommerce.json"
           background="transparent"
           speed="1"
           loop
