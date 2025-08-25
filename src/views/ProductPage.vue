@@ -345,7 +345,7 @@ const priceRanges = ref([
   { label: '$1 - $10', min: 1, max: 10 },
   { label: '$11 - $50', min: 11, max: 50 },
   { label: '$51 - $100', min: 51, max: 100 },
-  { label: '$101+', min: 101, max: Infinity },
+  { label: '$101+', min: 101, max: 999999 },
 ])
 
 // Pagination state
