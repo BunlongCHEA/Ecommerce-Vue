@@ -22,9 +22,14 @@ build:
 
     - sed -i 's|http://localhost:5169|https://ecommerceapi.bunlong.site|g' src/services/chatService.js
 
+    - sed -i 's|@/assets/animation-ecommerce.json|/animation-ecommerce.json|g' src/views/UserLogin.vue
+    - sed -i 's|@/assets/animation-ecommerce.json|/animation-ecommerce.json|g' src/views/UserRegister.vue
+
     # Verify the connection string was updated
     - cat src/services/api.js | grep "api"
     - cat src/services/chatService.js | grep "baseUrl"
+    - cat src/views/UserLogin.vue | grep "animationData"
+    - cat src/views/UserRegister.vue | grep "animationData"
 
     # . at then end: is used the current directory to look for the Dockerfile
     - docker build -t $CI_REGISTRY_IMAGE:$CI_COMMIT_SHA -t $CI_REGISTRY_IMAGE:latest .
