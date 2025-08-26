@@ -207,7 +207,7 @@ const durationWait = 1000 // 1 second
 onMounted(async () => {
   try {
     console.log('🎬 Loading animation data...')
-    const response = await fetch('/animation-ecommerce.json')
+    const response = await fetch('/animation-shopping.json')
     // const response = await fetch('/animation-ecommerce2.json')
     if (response.ok) {
       animationData.value = await response.json()
