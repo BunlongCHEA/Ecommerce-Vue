@@ -6,10 +6,6 @@
     <!-- Right side animation (2/3 width) with justify-content: right -->
     <div class="w-full md:w-2/3 flex items-center justify-end overflow-hidden animation-container">
       <div id="animation-sub" class="w-full h-full flex items-center -ml-4 md:-ml-8">
-        <!-- Debug info -->
-        <div v-if="!animationData" class="text-red-500 text-center">
-          Loading ecommerce animation...
-        </div>
         <!-- src="/animation-ecommerce.json"  --  :src="animationUrl" -->
         <!-- <lottie-player
           src="/animation-ecommerce.json"
@@ -26,10 +22,7 @@
           :speed="1"
           :loop="true"
           :autoplay="true"
-          class="bg-red-200 w-[110%] h-full max-w-none border-2 border-red-500"
-          @animationLoaded="onAnimationLoaded"
-          @loopComplete="onLoopComplete"
-          @error="onAnimationError"
+          class="bg-transparent w-[110%] h-auto max-w-none"
         />
         <!-- Fallback while loading -->
         <!-- <div v-else class="bg-transparent w-[110%] h-auto max-w-none flex items-center justify-center">
@@ -108,18 +101,6 @@ const loading = ref(false)
 const popupRef = ref(null)
 const durationWait = 1000 // 1 second
 
-const onAnimationLoaded = () => {
-  console.log('🎬 Vue3Lottie: Animation loaded and ready!')
-}
-
-const onLoopComplete = () => {
-  console.log('🔄 Vue3Lottie: Loop completed')
-}
-
-const onAnimationError = (error) => {
-  console.error('❌ Vue3Lottie Error:', error)
-}
-
 // Methods
 // onMounted(() => {
 //   const blob = new Blob([JSON.stringify(animationData)], { type: 'application/json' })
@@ -130,7 +111,8 @@ const onAnimationError = (error) => {
 onMounted(async () => {
   try {
     console.log('🎬 Loading animation data...')
-    const response = await fetch('/animation-ecommerce.json')
+    // const response = await fetch('/animation-ecommerce.json')
+    const response = await fetch('https://assets10.lottiefiles.com/packages/lf20_1a8dx7zj.json')
     if (response.ok) {
       animationData.value = await response.json()
       console.log('✅ Animation data /animation-ecommerce.json loaded successfully!')
