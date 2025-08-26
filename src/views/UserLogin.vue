@@ -7,14 +7,27 @@
     <div class="w-full md:w-2/3 flex items-center justify-end overflow-hidden animation-container">
       <div id="animation-sub" class="w-full h-full flex items-center -ml-4 md:-ml-8">
         <!-- src="/animation-ecommerce.json"  --  :src="animationUrl" -->
-        <lottie-player
+        <!-- <lottie-player
           src="/animation-ecommerce.json"
           background="transparent"
           speed="1"
           loop
           autoplay
           class="bg-transparent w-[110%] h-auto max-w-none"
-        ></lottie-player>
+        ></lottie-player> -->
+        <Vue3Lottie
+          v-if="animationData"
+          :animation-data="animationData"
+          :background="transparent"
+          :speed="1"
+          :loop="true"
+          :autoplay="true"
+          class="bg-transparent w-[110%] h-auto max-w-none"
+        />
+        <!-- Fallback while loading -->
+        <!-- <div v-else class="bg-transparent w-[110%] h-auto max-w-none flex items-center justify-center">
+          <div class="text-gray-400">Loading animation...</div>
+        </div> -->
       </div>
     </div>
 
@@ -68,7 +81,8 @@
 import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import api, { setAuthToken } from '@/services/api'
-import '@lottiefiles/lottie-player'
+// import '@lottiefiles/lottie-player'
+import { Vue3Lottie } from 'vue3-lottie'
 // import animationData from '@/assets/animation-ecommerce.json'
 import LoadingOverlay from '@/components/LoadingOverlay.vue'
 import PopupMessage from '@/components/PopupMessage.vue'
@@ -78,6 +92,7 @@ import PopupMessage from '@/components/PopupMessage.vue'
 const username = ref('')
 const password = ref('')
 // const animationUrl = ref('')
+const animationData = ref(null)
 const router = useRouter()
 const loading = ref(false)
 // const showMessage = ref(false)
@@ -92,17 +107,21 @@ const durationWait = 1000 // 1 second
 //   animationUrl.value = URL.createObjectURL(blob)
 // })
 
-// Show message and stop loading
-// const showPopupMessage = (text, type = 'error') => {
-//   loading.value = false
-//   messageText.value = text
-//   messageType.value = type
-//   showMessage.value = true
-
-//   setTimeout(() => {
-//     showMessage.value = false
-//   }, 3000)
-// }
+// Animation loading
+onMounted(async () => {
+  try {
+    console.log('🎬 Loading animation data...')
+    const response = await fetch('/animation-ecommerce.json')
+    if (response.ok) {
+      animationData.value = await response.json()
+      console.log('✅ Animation data loaded successfully!')
+    } else {
+      console.error('❌ Failed to load animation data, status:', response.status)
+    }
+  } catch (error) {
+    console.error('❌ Error loading animation data:', error)
+  }
+})
 
 const handleLogin = async () => {
   loading.value = true

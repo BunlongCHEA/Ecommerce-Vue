@@ -7,14 +7,27 @@
     <div class="w-full md:w-3/5 flex items-center justify-end overflow-hidden animation-container">
       <div id="animation-sub" class="w-full h-full flex items-center -ml-4 md:-ml-8">
         <!-- src="/animation-ecommerce.json" -->
-        <lottie-player
+        <!-- <lottie-player
           src="/animation-ecommerce.json"
           background="transparent"
           speed="1"
           loop
           autoplay
           class="bg-transparent w-[110%] h-auto max-w-none"
-        ></lottie-player>
+        ></lottie-player> -->
+        <Vue3Lottie
+          v-if="animationData"
+          :animation-data="animationData"
+          :background="transparent"
+          :speed="1"
+          :loop="true"
+          :autoplay="true"
+          class="bg-transparent w-[110%] h-auto max-w-none"
+        />
+        <!-- Fallback while loading -->
+        <!-- <div v-else class="bg-transparent w-[110%] h-auto max-w-none flex items-center justify-center">
+          <div class="text-gray-400">Loading animation...</div>
+        </div> -->
       </div>
     </div>
 
@@ -154,7 +167,8 @@
 </template>
 
 <script setup>
-import '@lottiefiles/lottie-player'
+// import '@lottiefiles/lottie-player'
+import { Vue3Lottie } from 'vue3-lottie'
 // import animationData from '@/assets/animation-ecommerce.json'
 import { ref, onMounted } from 'vue'
 import api from '@/services/api'
@@ -176,6 +190,8 @@ const confirmPassword = ref('')
 const phoneNumber = ref('') // Full phone number from vue-tel-input (e.g., +123456789)
 
 // const animationUrl = ref('')
+const animationData = ref(null)
+
 const router = useRouter()
 const loading = ref(false)
 const popupRef = ref(null)
@@ -186,6 +202,22 @@ const durationWait = 1000 // 1 second
 //   const blob = new Blob([JSON.stringify(animationData)], { type: 'application/json' })
 //   animationUrl.value = URL.createObjectURL(blob)
 // })
+
+// Animation loading
+onMounted(async () => {
+  try {
+    console.log('🎬 Loading animation data...')
+    const response = await fetch('/animation-ecommerce.json')
+    if (response.ok) {
+      animationData.value = await response.json()
+      console.log('✅ Animation data loaded successfully!')
+    } else {
+      console.error('❌ Failed to load animation data, status:', response.status)
+    }
+  } catch (error) {
+    console.error('❌ Error loading animation data:', error)
+  }
+})
 
 const handleRegister = async () => {
   loading.value = true
