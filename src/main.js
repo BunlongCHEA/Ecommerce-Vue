@@ -5,7 +5,7 @@ import VueTelInput from 'vue-tel-input'
 import 'vue-tel-input/vue-tel-input.css'
 import './assets/main.css'
 import FontAwesomeIcon from './plugins/fontAwesome'
-// import '@lottiefiles/lottie-player'
+import '@lottiefiles/lottie-player'
 
 import { setRouter } from '@/services/api'
 
