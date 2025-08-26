@@ -111,8 +111,8 @@ const durationWait = 1000 // 1 second
 onMounted(async () => {
   try {
     console.log('🎬 Loading animation data...')
-    // const response = await fetch('/animation-ecommerce.json')
-    const response = await fetch('https://assets10.lottiefiles.com/packages/lf20_1a8dx7zj.json')
+    const response = await fetch('/animation-ecommerce3.json')
+    // const response = await fetch('https://assets10.lottiefiles.com/packages/lf20_1a8dx7zj.json')
     if (response.ok) {
       animationData.value = await response.json()
       console.log('✅ Animation data /animation-ecommerce.json loaded successfully!')
