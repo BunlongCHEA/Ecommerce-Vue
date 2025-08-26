@@ -37,6 +37,7 @@ onMounted(async () => {
     const response = await fetch('/animation-loading.json')
     if (response.ok) {
       animationData.value = await response.json()
+      console.log('✅ Animation data /animation-loading.json loaded successfully!')
     } else {
       console.error('Failed to load loading animation')
     }
