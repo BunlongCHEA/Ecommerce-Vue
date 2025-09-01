@@ -113,8 +113,25 @@
       <div
         v-else
         ref="messagesContainer"
-        class="flex-1 overflow-y-auto p-4 space-y-3 bg-gray-50"
+        class="flex-1 overflow-y-auto p-4 space-y-3 bg-gray-50 relative"
+        @dragover="handleDragOver"
+        @dragleave="handleDragLeave"
+        @drop="handleDrop"
+        :class="{ 'bg-blue-50 border-2 border-dashed border-blue-300': isDragOver }"
       >
+        <!-- Drag & Drop Overlay -->
+        <div
+          v-if="isDragOver"
+          class="absolute inset-0 flex items-center justify-center bg-blue-50 bg-opacity-90 z-10"
+        >
+          <div class="text-center">
+            <svg class="w-12 h-12 mx-auto mb-2 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"></path>
+            </svg>
+            <p class="text-blue-600 font-medium">Drop image here to send</p>
+          </div>
+        </div>
+
         <!-- Welcome Message -->
         <div v-if="messages.length === 0" class="text-center text-gray-500 py-8">
           <svg class="w-12 h-12 mx-auto mb-4 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -143,7 +160,44 @@
                 : 'bg-white text-gray-800 border border-gray-200'
             ]"
           >
-            <p class="text-sm">{{ message.message }}</p>
+            <!-- Image Display -->
+            <div v-if="message.imageId && message.imageUrl" class="mb-2">
+              <img 
+                :src="message.imageUrl" 
+                :alt="message.message || 'Shared image'"
+                class="max-w-full h-auto rounded-lg cursor-pointer hover:opacity-90 transition-opacity"
+                @click="openImageModal(message.imageUrl)"
+                @error="handleImageError(message)"
+              />
+            </div>
+
+            <!-- <p v-else class="text-sm">{{ message.message }}</p> -->
+            <!-- Text Message -->
+            <div v-if="message.message">
+              <!-- Check if message contains URL -->
+              <div v-if="message.linkUrl" class="space-y-2">
+                <p class="text-sm">{{ getMessageWithoutUrl(message.message, message.linkUrl) }}</p>
+                <a 
+                  :href="message.linkUrl" 
+                  target="_blank" 
+                  rel="noopener noreferrer"
+                  :class="[
+                    'inline-flex items-center px-2 py-1 rounded text-xs underline break-all',
+                    message.senderId === currentUserId 
+                      ? 'text-blue-100 hover:text-white' 
+                      : 'text-blue-600 hover:text-blue-800'
+                  ]"
+                >
+                  <svg class="w-3 h-3 mr-1 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"></path>
+                  </svg>
+                  <span>{{ formatUrl(message.linkUrl) }}</span>
+                </a>
+              </div>
+              <p v-else class="text-sm">{{ message.message }}</p>
+            </div>
+
+            <!-- Message Footer -->
             <div
               :class="[
                 'text-xs mt-1 flex items-center justify-between',
@@ -185,9 +239,56 @@
         </div>
       </div>
 
+      <!-- Image Preview -->
+      <div v-if="imagePreview" class="p-4 border-t border-gray-200 bg-gray-50">
+        <div class="flex items-center space-x-3">
+          <div class="relative">
+            <img :src="imagePreview.url" alt="Preview" class="w-16 h-16 object-cover rounded-lg" />
+            <button
+              @click="removeImagePreview"
+              class="absolute -top-2 -right-2 bg-red-500 text-white rounded-full w-5 h-5 flex items-center justify-center text-xs hover:bg-red-600 transition-colors"
+            >
+              ×
+            </button>
+          </div>
+          <div class="flex-1">
+            <p class="text-sm font-medium text-gray-700">{{ imagePreview.name }}</p>
+            <p class="text-xs text-gray-500">{{ formatFileSize(imagePreview.size) }}</p>
+          </div>
+          <button
+            @click="sendImageMessage"
+            :disabled="isUploadingImage"
+            class="bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 text-white px-3 py-1 rounded text-sm transition-colors"
+          >
+            {{ isUploadingImage ? 'Uploading...' : 'Send' }}
+          </button>
+        </div>
+      </div>
+
       <!-- Input Area (only show when not showing rooms list or when user is not admin) -->
       <div v-if="!showRoomsList || currentUserRole !== 'Admin'" class="p-4 border-t border-gray-200 bg-white">
         <div class="flex space-x-2">
+          <!-- Image Upload Button -->
+          <div class="relative">
+            <input
+              ref="fileInput"
+              type="file"
+              accept="image/*"
+              @change="handleFileSelect"
+              class="hidden"
+            />
+            <button
+              @click="triggerFileUpload"
+              :disabled="!isConnected || isLoading || (currentUserRole === 'Admin' && !selectedRoom)"
+              class="text-gray-500 hover:text-blue-600 disabled:text-gray-300 p-2 transition-colors"
+              title="Upload image"
+            >
+              <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
+              </svg>
+            </button>
+          </div>
+
           <input
             ref="messageInput"
             v-model="newMessage"
@@ -199,9 +300,11 @@
             class="flex-1 border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
             :disabled="!isConnected || isLoading || (currentUserRole === 'Admin' && !selectedRoom)"
           />
+
+          <!-- "!newMessage.trim() || !isConnected || isLoading || (currentUserRole === 'Admin' && !selectedRoom)" -->
           <button
             @click="sendMessage"
-            :disabled="!newMessage.trim() || !isConnected || isLoading || (currentUserRole === 'Admin' && !selectedRoom)"
+            :disabled="!canSendMessage"
             class="bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 text-white px-4 py-2 rounded-lg transition-colors"
           >
             <svg
@@ -226,8 +329,22 @@
         </div>
       </div>
     </div>
+  </div>
 
-
+  <!-- Image Modal -->
+  <div
+    v-if="imageModal.show"
+    class="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50"
+    @click="closeImageModal"
+  >
+    <div class="max-w-4xl max-h-full p-4">
+      <img
+        :src="imageModal.url"
+        alt="Full size image"
+        class="max-w-full max-h-full object-contain"
+        @click.stop
+      />
+    </div>
   </div>
 </template>
 
@@ -253,6 +370,13 @@ const messageInput = ref(null)
 
 let typingTimeout = null
 
+// Image handling
+const imagePreview = ref(null)
+const isUploadingImage = ref(false)
+const isDragOver = ref(false)
+const imageModal = ref({ show: false, url: '' })
+const fileInput = ref(null)
+
 // Admin rooms state
 const adminRooms = ref([])
 const selectedRoom = ref(null)
@@ -276,6 +400,13 @@ const shouldShowChat = computed(() => {
   const pathExcluded = excludedPaths.includes(route.path)
   
   return !(nameExcluded || pathExcluded) && isAuthenticated.value
+})
+
+const canSendMessage = computed(() => {
+  const hasContent = newMessage.value.trim() || imagePreview.value
+  const isReady = isConnected.value && !isLoading.value && !isUploadingImage.value
+  const hasRoom = currentUserRole.value !== 'Admin' || selectedRoom.value
+  return hasContent && isReady && hasRoom
 })
 
 // Methods
@@ -384,12 +515,15 @@ const toggleRoomsList = () => {
   showRoomsList.value = !showRoomsList.value
 }
 
+// Message Handling
 const loadChatHistory = async () => {
   try {
     if (!chatRoomId.value) return
     
     const history = await chatApiService.getChatHistory(chatRoomId.value)
-    messages.value = history
+    
+    // Process messages with images
+    messages.value = await chatService.processMessages(history)
     
     // Count unread messages
     unreadCount.value = history.filter(m => 
@@ -409,7 +543,7 @@ const loadChatHistory = async () => {
 }
 
 const sendMessage = async () => {
-  if (!newMessage.value.trim() || !isConnected.value || !chatRoomId.value) return
+  if (!canSendMessage.value) return
   
   isLoading.value = true
   try {
@@ -423,6 +557,148 @@ const sendMessage = async () => {
   }
 }
 
+const sendImageMessage = async () => {
+  if (!imagePreview.value || !chatRoomId.value) return
+
+  isUploadingImage.value = true
+  try {
+    await chatService.sendMessageWithImageFile(
+      chatRoomId.value,
+      newMessage.value || '',
+      imagePreview.value.file
+    )
+    
+    // Clean up
+    newMessage.value = ''
+    removeImagePreview()
+  } catch (error) {
+    console.error('Failed to send image message:', error)
+    alert('Failed to send image: ' + error.message)
+  } finally {
+    isUploadingImage.value = false
+  }
+}
+
+// Image handling
+const triggerFileUpload = () => {
+  if (fileInput.value) {
+    fileInput.value.click()
+  }
+}
+
+const handleFileSelect = (event) => {
+  const file = event.target.files[0]
+  if (file) {
+    processImageFile(file)
+  }
+  // Clear the input
+  event.target.value = ''
+}
+
+const processImageFile = async (file) => {
+  try {
+    const imageData = chatService.prepareImageForUpload(file)
+    imagePreview.value = imageData
+  } catch (error) {
+    alert(error.message)
+  }
+}
+
+const removeImagePreview = () => {
+  if (imagePreview.value) {
+    chatService.cleanupImagePreview(imagePreview.value.previewUrl)
+    imagePreview.value = null
+  }
+}
+
+// Drag and drop handlers
+const handleDragOver = (event) => {
+  event.preventDefault()
+  event.stopPropagation()
+  isDragOver.value = true
+}
+
+const handleDragLeave = (event) => {
+  event.preventDefault()
+  event.stopPropagation()
+  isDragOver.value = false
+}
+
+const handleDrop = (event) => {
+  event.preventDefault()
+  event.stopPropagation()
+  isDragOver.value = false
+
+  const files = event.dataTransfer.files
+  if (files.length > 0) {
+    const file = files[0]
+    if (file.type.startsWith('image/')) {
+      processImageFile(file)
+    } else {
+      alert('Please drop an image file.')
+    }
+  }
+}
+
+// Paste handler
+const handlePaste = (event) => {
+  const items = event.clipboardData?.items
+  if (!items) return
+
+  for (let i = 0; i < items.length; i++) {
+    const item = items[i]
+    if (item.type.indexOf('image') !== -1) {
+      const file = item.getAsFile()
+      if (file) {
+        processImageFile(file)
+        break
+      }
+    }
+  }
+}
+
+// Image modal methods
+const openImageModal = (url) => {
+  imageModal.value = { show: true, url }
+}
+
+const closeImageModal = () => {
+  imageModal.value = { show: false, url: '' }
+}
+
+const handleImageError = (message) => {
+  console.error('Failed to load image:', message.imageId)
+  // Could implement retry logic or placeholder image here
+}
+
+// URL formatting methods
+const formatUrl = (url) => {
+  if (!url) return ''
+  if (url.length <= 35) return url
+  
+  // Remove protocol for display
+  const cleanUrl = url.replace(/^https?:\/\//, '')
+  if (cleanUrl.length <= 35) return cleanUrl
+  
+  // Truncate and add ellipsis
+  return cleanUrl.substring(0, 32) + '...'
+}
+
+const getMessageWithoutUrl = (message, url) => {
+  if (!message || !url) return message
+  return message.replace(url, '').trim()
+}
+
+// Utility methods
+const formatFileSize = (bytes) => {
+  if (bytes === 0) return '0 Bytes'
+  const k = 1024
+  const sizes = ['Bytes', 'KB', 'MB', 'GB']
+  const i = Math.floor(Math.log(bytes) / Math.log(k))
+  return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i]
+}
+
+
 const setupEventListeners = () => {
   chatService.onReceiveMessage(handleReceiveMessage)
   chatService.onMessageRead(handleMessageRead)
@@ -431,8 +707,10 @@ const setupEventListeners = () => {
   chatService.onError(handleError)
 }
 
-const handleReceiveMessage = (message) => {
-  messages.value.push(message)
+const handleReceiveMessage = async (message) => {
+  // Process message with image if present
+  const processedMessage = await chatService.processReceivedMessage(message)
+  messages.value.push(processedMessage)
   
   if (message.receiverId === currentUserId.value) {
     if (isOpen.value) {
@@ -562,6 +840,22 @@ onUnmounted(async () => {
   if (typingTimeout) {
     clearTimeout(typingTimeout)
   }
+
+  // Cleanup image preview
+  removeImagePreview()
+})
+
+// Global event listeners for paste
+onMounted(() => {
+  document.addEventListener('paste', (event) => {
+    if (isOpen.value && chatRoomId.value) {
+      handlePaste(event)
+    }
+  })
+})
+
+onUnmounted(() => {
+  document.removeEventListener('paste', handlePaste)
 })
 </script>
 
@@ -582,5 +876,15 @@ onUnmounted(async () => {
 
 .overflow-y-auto::-webkit-scrollbar-thumb:hover {
   background: #a1a1a1;
+}
+
+/* Animation for drag over */
+.transition-colors {
+  transition: background-color 0.2s ease;
+}
+
+/* Image modal styles */
+.fixed.inset-0 {
+  backdrop-filter: blur(4px);
 }
 </style>

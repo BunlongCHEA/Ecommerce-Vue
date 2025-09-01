@@ -241,7 +241,7 @@
                   <!-- Right: Price & Discount -->
                   <div class="flex flex-col items-end ml-2">
                     <p class="text-lg font-bold text-gray-800">
-                      ${{ product.price - ((product.discountPercentage || 0) / 100) * product.price }}
+                      ${{ ((product.price - ((product.discountPercentage || 0) / 100) * product.price)).toFixed(2) }}
                     </p>
                     <span 
                       v-if="product.discountPercentage" 

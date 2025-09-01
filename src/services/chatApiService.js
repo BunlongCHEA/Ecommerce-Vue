@@ -48,6 +48,48 @@ class ChatApiService {
     return response.data
   }
 
+  // Upload image to chat
+  async uploadImage(file, chatRoomId, description = null) {
+    const formData = new FormData()
+    formData.append('File', file)
+    formData.append('ChatRoomId', chatRoomId)
+    if (description) {
+      formData.append('Description', description)
+    }
+
+    const response = await api.post('/chat/upload', formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data'
+      }
+    })
+    return response.data
+  }
+
+  // Get image by ID (returns blob URL for display)
+  async getImage(imageId) {
+    const response = await api.get(`/chat/${imageId}`, {
+      responseType: 'blob'
+    })
+    return URL.createObjectURL(response.data)
+  }
+
+  // Get image info (metadata)
+  async getImageInfo(imageId) {
+    const response = await api.get(`/chat/info/${imageId}`)
+    return response.data
+  }
+
+  // Delete image
+  async deleteImage(imageId) {
+    await api.delete(`/chat/${imageId}`)
+  }
+
+  // Get all images for a chat room
+  async getChatRoomImages(chatRoomId) {
+    const response = await api.get(`/chat/room/${chatRoomId}/images`)
+    return response.data
+  }
+
   // Get available admin user
   async getAvailableAdmin() {
     try {
@@ -79,6 +121,32 @@ class ChatApiService {
       console.error('Failed to create admin support room:', error)
       throw error
     }
+  }
+
+  // Helper method to validate image file
+  validateImageFile(file) {
+    const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp']
+    const maxSize = 5 * 1024 * 1024 // 5MB
+
+    if (!allowedTypes.includes(file.type)) {
+      throw new Error('Invalid file type. Only JPEG, PNG, GIF, and WebP images are allowed.')
+    }
+
+    if (file.size > maxSize) {
+      throw new Error('File size exceeds 5MB limit.')
+    }
+
+    return true
+  }
+
+  // Helper method to create image preview URL
+  createImagePreviewUrl(file) {
+    return URL.createObjectURL(file)
+  }
+
+  // Helper method to revoke image preview URL
+  revokeImagePreviewUrl(url) {
+    URL.revokeObjectURL(url)
   }
 }
 

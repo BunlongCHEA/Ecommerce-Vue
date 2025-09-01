@@ -1,4 +1,5 @@
 import { HubConnectionBuilder, LogLevel } from '@microsoft/signalr'
+import chatApiService from './chatApiService'
 
 class ChatService {
   constructor() {
@@ -77,6 +78,43 @@ class ChatService {
     }
   }
 
+  // Send message with image via SignalR (requires image to be uploaded first)
+  async sendMessageWithImage(roomId, message, imageId) {
+    if (this.isConnected && this.connection) {
+      await this.connection.invoke('SendMessageWithImage', roomId.toString(), message, imageId)
+    }
+  }
+
+  // Send message with image file (upload + send in one operation)
+  async sendMessageWithImageFile(roomId, message = '', imageFile = null) {
+    try {
+      let imageId = null
+      
+      // Upload image first if provided
+      if (imageFile) {
+        // Validate image file
+        chatApiService.validateImageFile(imageFile)
+        
+        // Upload image
+        const uploadResponse = await chatApiService.uploadImage(imageFile, roomId)
+        imageId = uploadResponse.imageId
+      }
+
+      // Send message via SignalR if connected, otherwise use API
+      if (this.isConnected && this.connection && imageId) {
+        await this.sendMessageWithImage(roomId, message, imageId)
+      } else if (this.isConnected && this.connection) {
+        await this.sendMessage(roomId, message)
+      } else {
+        // Fallback to API if SignalR not connected
+        return await chatApiService.sendMessageWithImage(roomId, message, imageFile)
+      }
+    } catch (error) {
+      console.error('Error sending message with image:', error)
+      throw error
+    }
+  }
+
   async markAsRead(messageId) {
     if (this.isConnected && this.connection) {
       await this.connection.invoke('MarkAsRead', messageId.toString())
@@ -114,6 +152,68 @@ class ChatService {
 
   onError(callback) {
     this.callbacks.onError.push(callback)
+  }
+
+  // Helper methods for image handling
+  async getImageUrl(imageId) {
+    if (!imageId) return null
+    try {
+      return await chatApiService.getImage(imageId)
+    } catch (error) {
+      console.error('Error getting image URL:', error)
+      return null
+    }
+  }
+
+  // Process received message to include image URLs
+  async processReceivedMessage(message) {
+    const processedMessage = { ...message }
+    
+    if (message.imageId) {
+      try {
+        processedMessage.imageUrl = await this.getImageUrl(message.imageId)
+      } catch (error) {
+        console.error('Error processing image in message:', error)
+        processedMessage.imageUrl = null
+      }
+    }
+
+    return processedMessage
+  }
+
+  // Batch process messages with images
+  async processMessages(messages) {
+    const processedMessages = []
+    
+    for (const message of messages) {
+      const processedMessage = await this.processReceivedMessage(message)
+      processedMessages.push(processedMessage)
+    }
+    
+    return processedMessages
+  }
+
+  // Validate and prepare image for upload
+  prepareImageForUpload(file) {
+    try {
+      chatApiService.validateImageFile(file)
+      return {
+        file,
+        previewUrl: chatApiService.createImagePreviewUrl(file),
+        size: file.size,
+        type: file.type,
+        name: file.name
+      }
+    } catch (error) {
+      throw error
+    }
+  }
+
+  // Clean up image preview URL
+  cleanupImagePreview(previewUrl) {
+    if (previewUrl) {
+      chatApiService.revokeImagePreviewUrl(previewUrl)
+    }
   }
 
   async disconnect() {
