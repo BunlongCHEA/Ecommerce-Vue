@@ -4,7 +4,7 @@ metadata:
   name: vue-ecommerce-app
   namespace: production
 spec:
-  replicas: 3
+  replicas: 1
   selector:
     matchLabels:
       app: vue-ecommerce-app
