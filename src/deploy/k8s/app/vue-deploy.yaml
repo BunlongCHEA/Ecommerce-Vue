@@ -79,6 +79,8 @@ metadata:
     # SSL and security
     nginx.ingress.kubernetes.io/ssl-redirect: "false"  # Let Cloudflare handle HTTPS redirect
     nginx.ingress.kubernetes.io/force-ssl-redirect: "false"  # Let Cloudflare handle HTTPS redirect
+    nginx.ingress.kubernetes.io/server-snippet: |
+      add_header Content-Security-Policy "default-src 'self' http: https: data: blob: 'unsafe-inline'; connect-src 'self' ws: wss: http: https: *.bunlong.site; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'" always;
 
     # Custom headers for proper protocol detection
     nginx.ingress.kubernetes.io/configuration-snippet: |
@@ -97,6 +99,16 @@ spec:
     secretName: vue-ecommerce-tls
   rules:
   - host: ecommercevue.bunlong.site
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: vue-ecommerce-service
+            port:
+              number: 80
+  - host: www.ecommercevue.bunlong.site
     http:
       paths:
       - path: /
