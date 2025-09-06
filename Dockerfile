@@ -35,8 +35,10 @@ RUN find /usr/share/nginx/html -name "*.json" -type f || echo "No JSON files fou
 
 # Create temp directories for nginx and set proper permissions
 RUN mkdir -p /tmp/nginx-client-body /tmp/nginx-proxy /tmp/nginx-fastcgi /tmp/nginx-uwsgi /tmp/nginx-scgi && \
+    mkdir -p /var/cache/nginx/client_temp /var/cache/nginx/proxy_temp /var/cache/nginx/fastcgi_temp /var/cache/nginx/uwsgi_temp /var/cache/nginx/scgi_temp && \
     chown -R nginx:nginx /usr/share/nginx/html && \
     chown -R nginx:nginx /tmp/nginx-* && \
+    chown -R nginx:nginx /var/cache/nginx && \
     # Create and set permissions for PID file
     touch /var/run/nginx.pid && \
     chown nginx:nginx /var/run/nginx.pid
