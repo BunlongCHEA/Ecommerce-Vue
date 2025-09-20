@@ -16,6 +16,7 @@ import AdminOrderDetail from '@/views/AdminOrderDetail.vue'
 import AdminProduct from '@/views/AdminProduct.vue'
 import ProductDetailPage from '@/views/ProductDetailPage.vue'
 import UserProfile from '@/views/UserProfile.vue'
+import ResetPassword from '@/views/ResetPassword.vue'
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -50,8 +51,13 @@ const router = createRouter({
     },
     {
       path: '/reset-password-sent',
-      name: 'reset-password-sent',
+      name: 'ResetPasswordSent',
       component: ResetPasswordSent,
+    },
+    {
+      path: '/reset-password',
+      name: 'ResetPassword',
+      component: ResetPassword,
     },
     {
       path: '/userprofile',

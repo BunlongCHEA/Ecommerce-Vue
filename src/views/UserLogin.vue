@@ -115,12 +115,12 @@ onMounted(async () => {
     // const response = await fetch('https://assets10.lottiefiles.com/packages/lf20_1a8dx7zj.json')
     if (response.ok) {
       animationData.value = await response.json()
-      console.log('✅ Animation data /animation-ecommerce.json loaded successfully!')
+      console.log('Animation data /animation-ecommerce.json loaded successfully!')
     } else {
-      console.error('❌ Failed to load animation data, status:', response.status)
+      console.error('Failed to load animation data, status:', response.status)
     }
   } catch (error) {
-    console.error('❌ Error loading animation data:', error)
+    console.error('Error loading animation data:', error)
   }
 })
 
@@ -162,8 +162,8 @@ const handleLogin = async () => {
 
     // Simulate loading delay
     setTimeout(() => {
-      loading.value = false
       router.push('/product')
+      loading.value = false
     }, durationWait)
   } catch (error) {
     popupRef.value.show(error.response?.data?.message || 'Login failed. Please try again.', 'error')
