@@ -104,16 +104,17 @@ const resendEmail = async () => {
   try {
     const clientUrl = window.location.origin
 
-    const testResponse = await api.post('/test/sendgrid-direct-test', {
-      email: email.value
-    })
+    // const testResponse = await api.post('/test/sendgrid-direct-test', {
+    //   email: email.value
+    // })
 
     const response = await api.post('/auth/forgot-password', {
       email: email.value,
       clientUrl
     })
 
-    console.log('Test email response: ', testResponse.data)
+    // console.log('Test email response: ', testResponse.data)
+    console.log('clientUrl: ', clientUrl)
     console.log('Forgot password response: ', response.data)
     console.log('response.data.details: ', response.data.details)
 

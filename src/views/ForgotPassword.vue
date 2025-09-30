@@ -108,14 +108,15 @@ const handleSubmit = async () => {
     //   email: email.value
     // })
 
-    // const response = await api.post('/auth/forgot-password', {
-    //   email: email.value,
-    //   clientUrl
-    // })
+    const response = await api.post('/auth/forgot-password', {
+      email: email.value,
+      clientUrl
+    })
 
-    // // console.log('Test email response: ', testResponse.data)
-    // console.log('Forgot password response: ', response.data)
-    // console.log('response.data.details: ', response.data.details)
+    // console.log('Test email response: ', testResponse.data)
+    console.log('clientUrl: ', clientUrl)
+    console.log('Forgot password response: ', response.data)
+    console.log('response.data.details: ', response.data.details)
     
     // Simulate loading delay to redirect to Reset Password page
     setTimeout(() => {
