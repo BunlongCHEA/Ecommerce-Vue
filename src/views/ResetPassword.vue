@@ -160,6 +160,11 @@ const handleSubmit = async () => {
   loading.value = true
 
   try {
+    console.log('Email:', email.value)
+    console.log('Token:', token.value)
+    console.log('New Password:', newPassword.value)
+    console.log('Confirm Password:', confirmPassword.value)
+
     // await authApi.resetPassword(email.value, token.value, newPassword.value, confirmPassword.value)
     const response = await api.post('/auth/reset-password', {
         email: email.value,
