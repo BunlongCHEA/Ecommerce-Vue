@@ -168,6 +168,8 @@ const handleSubmit = async () => {
         confirmPassword: confirmPassword.value
     })
     
+    console.log('Reset password response: ', response.data)
+
     popupRef.value?.show('Password reset successfully! Redirecting to sign in...', 'success')
     
     setTimeout(() => {
