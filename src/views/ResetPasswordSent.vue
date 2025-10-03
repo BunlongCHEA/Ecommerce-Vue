@@ -8,18 +8,19 @@
       <div class="flex justify-between items-center px-6 py-4">
         <h1 class="text-2xl font-bold text-white">Check Your Email</h1>
         <div class="flex gap-3">
-          <router-link 
-            to="/login" 
+          <button 
+            @click="navigateToLogin"
             class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors"
           >
             Sign In
-          </router-link>
-          <router-link 
-            to="/register" 
+          </button>
+
+          <button 
+            @click="navigateToRegister"
             class="px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg font-medium transition-colors"
           >
             Sign Up
-          </router-link>
+          </button>
         </div>
       </div>
     </div>
@@ -74,7 +75,11 @@
         </div>
         
         <div class="mt-4">
-          <router-link to="/login" class="text-blue-600 hover:underline">Back to Login</router-link>
+          <button 
+            @click="navigateToLogin"
+            class="text-blue-600 hover:underline"
+          >Back to Login
+          </button>
         </div>
       </div>
     </div>
@@ -123,5 +128,23 @@ const resendEmail = async () => {
     const errorMessage = error.response?.data?.message || 'Failed to resend email. Please try again.'
     popupRef.value?.show(errorMessage || 'Failed to resend email. Please try again.', 'error')
   }
+}
+
+// --- Navigate Router ---
+
+const navigateToLogin = () => {
+  loading.value = true
+  setTimeout(() => {
+    router.push('/')
+    loading.value = false
+  }, durationWait)
+}
+
+const navigateToRegister = () => {
+  loading.value = true
+  setTimeout(() => {
+    router.push('/register')
+    loading.value = false
+  }, durationWait)
 }
 </script>

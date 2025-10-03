@@ -70,7 +70,8 @@
           </div>
         </form>
         <div class="mt-4">
-          <router-link to="/forgot-password" class="text-blue-600 hover:underline">Forgot your password?</router-link>
+          <!-- <router-link to="/forgot-password" class="text-blue-600 hover:underline">Forgot your password?</router-link> -->
+          <button @click="navigateToForgotPassword" class="text-blue-600 hover:underline">Forgot your password?</button>
         </div>
       </div>
     </div>
@@ -175,6 +176,14 @@ const navigateToRegister = () => {
   loading.value = true
   setTimeout(() => {
     router.push('/register')
+    loading.value = false
+  }, durationWait)
+}
+
+const navigateToForgotPassword = () => {
+  loading.value = true
+  setTimeout(() => {
+    router.push('/forgot-password')
     loading.value = false
   }, durationWait)
 }
