@@ -272,10 +272,14 @@ const statusSteps = [
 ]
 const selectedStatuses = ref([statusSteps[0]]); // Start with empty array to avoid default filter
 
+// --- Wachters ---
+
 // Watch for changes in pagination, filters, or selected statuses and refetch data
 watch([currentPage, itemsPerPage], () => {
   fetchOrders();
 }, { deep: true }); // Deep watch for the selectedStatuses array
+
+// --- Fetch API ---
 
 // Fetch orders with server-side pagination and filtering
 const fetchOrders = async () => {
@@ -334,6 +338,8 @@ const fetchOrders = async () => {
     loading.value = false;
   }
 };
+
+// --- Helper Functions For Orders ---
 
 // All orders are grouped by each orderId
 const groupOrders = () => {
@@ -474,6 +480,9 @@ const checkForDelayedOrders = async () => {
     }
   }
 };
+
+
+// --- Update Order Status In Accordance to Order & Shipment ---
 
 // Update order status
 const updateOrderStatus = async (orderId, newStatus) => {
