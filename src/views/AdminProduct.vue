@@ -9,8 +9,8 @@
          :class="{ 'translate-x-64': isMenuOpen }">
       <!-- Back Button & Title Component -->
       <BackButton
-        :buttonLabel="'Back to Dashboard'"
-        :destination="'/admin/dashboard'"
+        :buttonLabel="'Back to Product'"
+        :destination="'/product'"
         :defaultTitle="'Product Management'"
         :waitDuration="durationWait"
       ></BackButton>
@@ -138,10 +138,12 @@
                   <td class="px-6 py-4 whitespace-nowrap">
                     <div class="h-12 w-12 bg-gray-100 rounded-md overflow-hidden">
                       <img 
-                        :src="product.imageUrl" 
+                        :src="getImageSrc(product.imageUrl)" 
                         :alt="product.name"
                         class="h-full w-full object-cover"
                         @error="handleImageError($event)"
+                        @load="handleImageLoad($event)"
+                        loading="lazy"
                       />
                     </div>
                   </td>
@@ -200,185 +202,6 @@
         </div>
       </div>
     </div>
-
-    <!-- Excel Upload Modal -->
-    <!-- <div v-if="showExcelUploadModal" class="fixed inset-0 flex items-center justify-center z-50">
-      <div class="absolute inset-0 bg-gray-900 bg-opacity-75" @click="showExcelUploadModal = false"></div>
-      <div class="relative bg-white rounded-lg max-w-2xl w-full mx-4 shadow-xl">
-        <div class="p-6">
-          <div class="flex justify-between items-center mb-4">
-            <h3 class="text-xl font-semibold text-gray-900">Upload Product Excel File</h3>
-            <button @click="showExcelUploadModal = false" class="text-gray-400 hover:text-gray-500">
-              <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
-              </svg>
-            </button>
-          </div>
-          <div class="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center mb-6">
-            <input 
-              ref="fileInput"
-              type="file" 
-              accept=".xlsx, .xls" 
-              @change="handleFileUpload" 
-              class="hidden" 
-            />
-            <div v-if="!selectedFile">
-              <svg xmlns="http://www.w3.org/2000/svg" class="h-12 w-12 mx-auto text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
-              </svg>
-              <p class="mt-4 text-sm text-gray-600">
-                Drag and drop your Excel file here or
-                <button 
-                  type="button" 
-                  @click="$refs.fileInput.click()" 
-                  class="text-indigo-600 font-medium hover:text-indigo-500"
-                >
-                  browse
-                </button>
-              </p>
-              <p class="mt-1 text-xs text-gray-500">Excel files only (.xlsx, .xls)</p>
-            </div>
-            <div v-else class="text-left">
-              <div class="flex items-center justify-between bg-indigo-50 p-3 rounded-md">
-                <div class="flex items-center">
-                  <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 text-green-500" viewBox="0 0 20 20" fill="currentColor">
-                    <path fill-rule="evenodd" d="M6.267 3.455a3.066 3.066 0 001.745-.723 3.066 3.066 0 013.976 0 3.066 3.066 0 001.745.723 3.066 3.066 0 012.812 2.812c.051.643.304 1.254.723 1.745a3.066 3.066 0 010 3.976 3.066 3.066 0 00-.723 1.745 3.066 3.066 0 01-2.812 2.812 3.066 3.066 0 00-1.745.723 3.066 3.066 0 01-3.976 0 3.066 3.066 0 00-1.745-.723 3.066 3.066 0 01-2.812-2.812 3.066 3.066 0 00-.723-1.745 3.066 3.066 0 010-3.976 3.066 3.066 0 00.723-1.745 3.066 3.066 0 012.812-2.812zm7.44 5.252a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
-                  </svg>
-                  <div class="ml-4">
-                    <p class="text-sm font-medium text-gray-900">{{ selectedFile.name }}</p>
-                    <p class="text-xs text-gray-500">{{ formatFileSize(selectedFile.size) }}</p>
-                  </div>
-                </div>
-                <button @click="clearSelectedFile" class="text-gray-400 hover:text-gray-500">
-                  <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-                    <path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd" />
-                  </svg>
-                </button>
-              </div>
-            </div>
-          </div>
-          <div class="flex justify-end">
-            <button
-              @click="showExcelUploadModal = false"
-              class="mr-3 px-4 py-2 bg-gray-200 text-gray-800 rounded-md hover:bg-gray-300 focus:outline-none focus:ring-2 focus:ring-gray-400 focus:ring-offset-2 transition-colors"
-            >
-              Cancel
-            </button>
-            <button
-              @click="processExcelFile"
-              :disabled="!selectedFile"
-              class="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              Upload
-            </button>
-          </div>
-        </div>
-      </div>
-    </div> -->
-
-    <!-- Excel Preview Modal -->
-    <!-- <div v-if="showExcelPreviewModal" class="fixed inset-0 flex items-center justify-center z-50">
-      <div class="absolute inset-0 bg-gray-900 bg-opacity-75" @click="showExcelPreviewModal = false"></div>
-      <div class="relative bg-white rounded-lg max-w-6xl w-full mx-4 shadow-xl max-h-[90vh] flex flex-col">
-        <div class="p-6 border-b">
-          <div class="flex justify-between items-center">
-            <h3 class="text-xl font-semibold text-gray-900">Review Products</h3>
-            <button @click="showExcelPreviewModal = false" class="text-gray-400 hover:text-gray-500">
-              <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
-              </svg>
-            </button>
-          </div>
-          <p class="text-sm text-gray-600 mt-1">
-            Please review the imported products before adding them to your catalog.
-          </p>
-        </div>
-        <div class="overflow-y-auto flex-1 p-4">
-          <div class="overflow-x-auto">
-            <table class="min-w-full divide-y divide-gray-200">
-              <thead class="bg-gray-50 sticky top-0">
-                <tr>
-                  <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Image</th>
-                  <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
-                  <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Price</th>
-                  <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Description</th>
-                  <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Category ID</th>
-                  <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">SubCategory ID</th>
-                  <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Store ID</th>
-                  <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
-                </tr>
-              </thead>
-              <tbody class="bg-white divide-y divide-gray-200">
-                <tr v-for="(product, index) in excelProducts" :key="index" class="hover:bg-gray-50">
-                  <td class="px-6 py-4 whitespace-nowrap">
-                    <div class="h-12 w-12 bg-gray-100 rounded-md overflow-hidden">
-                      <img 
-                        :src="product.imageUrl" 
-                        :alt="product.name"
-                        class="h-full w-full object-cover"
-                        @error="handleImageError($event)"
-                      />
-                    </div>
-                  </td>
-                  <td class="px-6 py-4 whitespace-nowrap">
-                    <div class="text-sm font-medium text-gray-900">{{ product.name }}</div>
-                  </td>
-                  <td class="px-6 py-4 whitespace-nowrap">
-                    <div class="text-sm text-gray-900">${{ formatPrice(product.price) }}</div>
-                  </td>
-                  <td class="px-6 py-4">
-                    <div class="text-sm text-gray-900 truncate max-w-[200px]">{{ product.description }}</div>
-                  </td>
-                  <td class="px-6 py-4 whitespace-nowrap">
-                    <div class="text-sm text-gray-900">{{ product.categoryId }}</div>
-                  </td>
-                  <td class="px-6 py-4 whitespace-nowrap">
-                    <div class="text-sm text-gray-900">{{ product.subCategoryId }}</div>
-                  </td>
-                  <td class="px-6 py-4 whitespace-nowrap">
-                    <div class="text-sm text-gray-900">{{ product.storeId }}</div>
-                  </td>
-                  <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                    <button 
-                      @click="editExcelProduct(index)"
-                      class="text-indigo-600 hover:text-indigo-900 mx-2"
-                    >
-                      Edit
-                    </button>
-                    <button 
-                      @click="removeExcelProduct(index)"
-                      class="text-red-600 hover:text-red-900 mx-2"
-                    >
-                      Remove
-                    </button>
-                  </td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
-        </div>
-        <div class="p-6 border-t bg-gray-50 flex justify-between items-center">
-          <div class="text-sm text-gray-500">
-            Showing {{ excelProducts.length }} products from your Excel file.
-          </div>
-          <div class="flex">
-            <button
-              @click="showExcelPreviewModal = false"
-              class="mr-3 px-4 py-2 bg-gray-200 text-gray-800 rounded-md hover:bg-gray-300 focus:outline-none focus:ring-2 focus:ring-gray-400 focus:ring-offset-2 transition-colors"
-            >
-              Cancel
-            </button>
-            <button
-              @click="importProducts"
-              :disabled="excelProducts.length === 0"
-              class="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              Import {{ excelProducts.length }} Products
-            </button>
-          </div>
-        </div>
-      </div>
-    </div> -->
 
     <!-- Excel Upload Component -->
     <ExcelUpload
@@ -506,7 +329,7 @@
               </div>
             </div>
             
-            <div>
+            <!-- <div>
               <label for="imageUrl" class="block text-sm font-medium text-gray-700">Image URL</label>
               <input 
                 type="text" 
@@ -525,6 +348,122 @@
                   />
                 </div>
                 <span class="text-xs text-gray-500">Preview image will appear here</span>
+              </div>
+            </div> -->
+
+            <!-- IMAGE UPLOAD SECTION -->
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-3">Product Image</label>
+              
+              <!-- Image Upload Method Selection -->
+              <div class="flex space-x-4 mb-4">
+                <label class="flex items-center">
+                  <input 
+                    type="radio" 
+                    v-model="imageUploadMethod" 
+                    value="url"
+                    class="mr-2"
+                  >
+                  <span class="text-sm text-gray-700">Image URL</span>
+                </label>
+                <label class="flex items-center">
+                  <input 
+                    type="radio" 
+                    v-model="imageUploadMethod" 
+                    value="file"
+                    class="mr-2"
+                  >
+                  <span class="text-sm text-gray-700">Upload File</span>
+                </label>
+              </div>
+
+              <!-- URL Input Method -->
+              <div v-if="imageUploadMethod === 'url'" class="space-y-3">
+                <input 
+                  type="url" 
+                  v-model="currentEditProduct.imageUrl" 
+                  class="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                  placeholder="https://example.com/image.jpg"
+                />
+                <!-- URL Preview -->
+                <div v-if="currentEditProduct.imageUrl" class="flex items-center">
+                  <div class="h-16 w-16 bg-gray-100 rounded-md overflow-hidden mr-3">
+                    <img 
+                      :src="getImageSrc(currentEditProduct.imageUrl)" 
+                      alt="Preview" 
+                      class="h-full w-full object-cover"
+                      @error="handleImageError($event)"
+                      @load="handleImageLoad($event)"
+                      loading="lazy"
+                    />
+                  </div>
+                  <span class="text-xs text-gray-500">URL Preview</span>
+                </div>
+              </div>
+
+              <!-- File Upload Method -->
+              <div v-if="imageUploadMethod === 'file'" class="space-y-3">
+                <!-- File Input -->
+                <div class="flex items-center justify-center w-full">
+                  <label class="flex flex-col items-center justify-center w-full h-32 border-2 border-gray-300 border-dashed rounded-lg cursor-pointer bg-gray-50 hover:bg-gray-100">
+                    <div class="flex flex-col items-center justify-center pt-5 pb-6">
+                      <svg class="w-8 h-8 mb-4 text-gray-500" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 20 16">
+                        <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 13h3a3 3 0 0 0 0-6h-.025A5.56 5.56 0 0 0 16 6.5 5.5 5.5 0 0 0 5.207 5.021C5.137 5.017 5.071 5 5 5a4 4 0 0 0 0 8h2.167M10 15V6m0 0L8 8m2-2 2 2"/>
+                      </svg>
+                      <p class="mb-2 text-sm text-gray-500">
+                        <span class="font-semibold">Click to upload</span> or drag and drop
+                      </p>
+                      <p class="text-xs text-gray-500">PNG, JPG, GIF up to 5MB</p>
+                    </div>
+                    <input 
+                      ref="fileInput"
+                      type="file" 
+                      class="hidden" 
+                      accept="image/*"
+                      @change="handleFileSelect"
+                    >
+                  </label>
+                </div>
+
+                <!-- File Upload Progress -->
+                <div v-if="uploadProgress > 0 && uploadProgress < 100" class="w-full bg-gray-200 rounded-full h-2">
+                  <div class="bg-indigo-600 h-2 rounded-full transition-all duration-300" :style="{ width: uploadProgress + '%' }"></div>
+                </div>
+
+                <!-- Selected File Preview -->
+                <div v-if="selectedFile" class="flex items-center space-x-3 p-3 bg-gray-50 rounded-md">
+                  <img 
+                    :src="filePreviewUrl" 
+                    alt="Preview" 
+                    class="w-16 h-16 object-cover rounded-md"
+                  >
+                  <div class="flex-1">
+                    <p class="text-sm font-medium text-gray-900">{{ selectedFile.name }}</p>
+                    <p class="text-xs text-gray-500">{{ formatFileSize(selectedFile.size) }}</p>
+                  </div>
+                  <button 
+                    type="button"
+                    @click="removeSelectedFile"
+                    class="text-red-600 hover:text-red-800"
+                  >
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                    </svg>
+                  </button>
+                </div>
+
+                <!-- Current Image (for edit mode) -->
+                <div v-if="editingExistingProduct && currentEditProduct.imageUrl && !selectedFile" class="space-y-2">
+                  <p class="text-sm text-gray-600">Current Image:</p>
+                  <div class="flex items-center space-x-3">
+                    <img 
+                      :src="currentEditProduct.imageUrl" 
+                      alt="Current product image" 
+                      class="w-16 h-16 object-cover rounded-md border"
+                    >
+                    <span class="text-xs text-gray-500">Keep current image or upload new one</span>
+                  </div>
+                </div>
               </div>
             </div>
             
@@ -604,15 +543,17 @@ const deleteLoading = ref(false);
 const popupRef = ref(null);
 const durationWait = 1000; // 1 second wait duration for animations
 
-// Excel upload state
-const excelLoading = ref(false);
-const excelUploadRef = ref(null);
-
 const products = ref([]);
 const categories = ref([]);
 const subcategories = ref([]);
 const stores = ref([]);
 const coupons = ref([]);
+
+// Add these to your existing data/setup
+const imageUploadMethod = ref('url') // 'url' or 'file'
+const selectedFile = ref(null)
+const filePreviewUrl = ref('')
+const uploadProgress = ref(0)
 
 // Pagination state
 const pagination = ref({
@@ -631,16 +572,6 @@ const filters = ref({
   maxPrice: null
 });
 
-// Modals
-const showExcelUploadModal = ref(false);
-// const showExcelPreviewModal = ref(false);
-const showProductEditModal = ref(false);
-const showDeleteConfirmModal = ref(false);
-
-// File handling
-// const selectedFile = ref(null);
-// const excelProducts = ref([]);
-
 // Product editing
 const currentEditProduct = ref({
   id: null,
@@ -654,9 +585,18 @@ const currentEditProduct = ref({
   couponId: null
 });
 
+// Excel data
 const editingExistingProduct = ref(false);
 const editingExcelIndex = ref(null);
 const productToDelete = ref(null);
+
+// Excel upload state
+const excelLoading = ref(false);
+const excelUploadRef = ref(null);
+
+const showExcelUploadModal = ref(false);
+const showProductEditModal = ref(false);
+const showDeleteConfirmModal = ref(false);
 
 // Excel configuration
 const excelColumnMapping = {
@@ -686,7 +626,48 @@ const filteredSubcategories = computed(() => {
   return subcategories.value;
 });
 
-// Methods
+// --- Methods ---
+// --- FormData Helper Functions ---
+
+const createFormData = () => {
+  const formData = new FormData();
+  
+  // Add text fields
+  formData.append('Name', currentEditProduct.value.name);
+  formData.append('Price', currentEditProduct.value.price.toString());
+  formData.append('Description', currentEditProduct.value.description || '');
+  formData.append('CategoryId', currentEditProduct.value.categoryId.toString());
+  formData.append('StoreId', currentEditProduct.value.storeId.toString());
+  
+  // Add optional fields
+  if (currentEditProduct.value.subCategoryId) {
+    formData.append('SubCategoryId', currentEditProduct.value.subCategoryId.toString());
+  }
+  if (currentEditProduct.value.couponId) {
+    formData.append('CouponId', currentEditProduct.value.couponId.toString());
+  }
+  
+  // Handle image based on upload method
+  if (imageUploadMethod.value === 'file' && selectedFile.value) {
+    // File upload method
+    formData.append('ImageFile', selectedFile.value);
+  } else if (imageUploadMethod.value === 'url' && currentEditProduct.value.imageUrl) {
+    // URL method - pass as regular field (backend can handle URL-based images differently if needed)
+    formData.append('ImageUrl', currentEditProduct.value.imageUrl);
+  }
+  
+  return formData;
+};
+
+const resetFileUpload = () => {
+  selectedFile.value = null;
+  filePreviewUrl.value = '';
+  uploadProgress.value = 0;
+  imageUploadMethod.value = 'url';
+};
+
+// --- API Calls ---
+
 const fetchProducts = async () => {
   loading.value = true;
   try {
@@ -819,6 +800,8 @@ const applyFilters = () => {
   fetchProducts();
 };
 
+// --- Handle Excel Upload ---
+
 const openExcelUploadModal = () => {
   showExcelUploadModal.value = true;
 };
@@ -870,105 +853,77 @@ const handlePreviewClose = () => {
   // Excel component handles its own preview modal
 };
 
-// const handleFileUpload = (event) => {
-//   const file = event.target.files[0];
-//   if (!file) return;
-//   selectedFile.value = file;
-// };
-
-// const clearSelectedFile = () => {
-//   selectedFile.value = null;
-//   if (this.$refs.fileInput) {
-//     this.$refs.fileInput.value = '';
-//   }
-// };
-
-// const processExcelFile = async () => {
-//   if (!selectedFile.value) return;
-
-//   loading.value = true;
-//   try {
-//     const reader = new FileReader();
-//     reader.onload = (e) => {
-//       const data = new Uint8Array(e.target.result);
-//       const workbook = XLSX.read(data, { type: 'array' });
-      
-//       // Assuming the first sheet contains our data
-//       const worksheetName = workbook.SheetNames[0];
-//       const worksheet = workbook.Sheets[worksheetName];
-      
-//       // Convert to JSON
-//       const jsonData = XLSX.utils.sheet_to_json(worksheet);
-      
-//       // Map Excel data to our product model
-//       excelProducts.value = jsonData.map(row => ({
-//         name: row.Name || '',
-//         price: parseFloat(row.Price) || 0,
-//         description: row.Description || '',
-//         imageUrl: row.ImageUrl || 'https://via.placeholder.com/150',
-//         categoryId: parseInt(row.CategoryId) || null,
-//         subCategoryId: parseInt(row.SubCategoryId) || null,
-//         storeId: parseInt(row.StoreId) || null,
-//         couponId: row.CouponId ? parseInt(row.CouponId) : null
-//       }));
-      
-//       showExcelUploadModal.value = false;
-//       showExcelPreviewModal.value = true;
-//     };
-//     reader.readAsArrayBuffer(selectedFile.value);
-//   } catch (error) {
-//     console.error('Error processing Excel file:', error);
-//     popupRef.value.show('Error processing Excel file. Please check the format.', 'error');
-//   } finally {
-//     loading.value = false;
-//   }
-// };
-
-// const formatFileSize = (bytes) => {
-//   if (bytes === 0) return '0 Bytes';
-//   const k = 1024;
-//   const sizes = ['Bytes', 'KB', 'MB', 'GB'];
-//   const i = Math.floor(Math.log(bytes) / Math.log(k));
-//   return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
-// };
-
 const formatPrice = (price) => {
   return parseFloat(price).toFixed(2);
 };
 
-// const editExcelProduct = (index) => {
-//   editingExcelIndex.value = index;
-//   currentEditProduct.value = { ...excelProducts.value[index] };
-//   showExcelPreviewModal.value = false;
-//   showProductEditModal.value = true;
-// };
+// --- Image Upload Handlers ---
 
-// const removeExcelProduct = (index) => {
-//   excelProducts.value.splice(index, 1);
-// };
+const handleFileSelect = (event) => {
+  const file = event.target.files[0]
+  if (!file) return
 
-// const importProducts = async () => {
-//   loading.value = true;
-//   try {
-//     // In a real application, you would send the products to your API
-//     const response = await api.post('/admin/product/batch', excelProducts.value);
-    
-//     // Refresh the products list
-//     await fetchProducts();
-    
-//     // Clear the Excel product data
-//     excelProducts.value = [];
-//     selectedFile.value = null;
-//     showExcelPreviewModal.value = false;
-    
-//     popupRef.value.show('Products imported successfully!', 'success');
-//   } catch (error) {
-//     console.error('Error importing products:', error);
-//     popupRef.value.show('Error importing products. Please try again.', 'error');
-//   } finally {
-//     loading.value = false;
-//   }
-// };
+  // Validate file type
+  const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp']
+  if (!allowedTypes.includes(file.type)) {
+    alert('Please select a valid image file (JPEG, PNG, GIF, WebP)')
+    return
+  }
+
+  // Validate file size (5MB max)
+  const maxSize = 5 * 1024 * 1024
+  if (file.size > maxSize) {
+    alert('File size must be less than 5MB')
+    return
+  }
+
+  selectedFile.value = file
+  
+  // Create preview URL
+  const reader = new FileReader()
+  reader.onload = (e) => {
+    filePreviewUrl.value = e.target.result
+  }
+  reader.readAsDataURL(file)
+}
+
+const removeSelectedFile = () => {
+  selectedFile.value = null
+  filePreviewUrl.value = ''
+  uploadProgress.value = 0
+}
+
+const formatFileSize = (bytes) => {
+  if (bytes === 0) return '0 Bytes'
+  const k = 1024
+  const sizes = ['Bytes', 'KB', 'MB', 'GB']
+  const i = Math.floor(Math.log(bytes) / Math.log(k))
+  return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i]
+}
+
+const handleImageError = (event) => {
+  // Prevent infinite loop by checking if we're already showing fallback
+  if (event.target.dataset.fallback !== 'true') {
+    event.target.dataset.fallback = 'true';
+    event.target.src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTUwIiBoZWlnaHQ9IjE1MCIgdmlld0JveD0iMCAwIDE1MCAxNTAiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxyZWN0IHdpZHRoPSIxNTAiIGhlaWdodD0iMTUwIiBmaWxsPSIjRjNGNEY2Ii8+CjxwYXRoIGQ9Ik0zNyA0OEg2M1Y3NEgzN1Y0OFoiIGZpbGw9IiM5Q0E1QUYiLz4KPHBhdGggZD0iTTc1IDQ4SDEwMVY3NEg3NVY0OFoiIGZpbGw9IiM5Q0E1QUYiLz4KPHBhdGggZD0iTTQ5IDYwSDg3VjYySDQ5VjYwWiIgZmlsbD0iIzlDQTVBRiIvPgo8cGF0aCBkPSJNNDkgODRIODdWODZINDlWODRaIiBmaWxsPSIjOUNBNUFGIi8+CjxwYXRoIGQ9Ik01NyA5Nkg3OVY5OEg1N1Y5NloiIGZpbGw9IiM5Q0E1QUYiLz4KPC9zdmc+';
+    event.target.alt = 'No Image Available';
+  }
+};
+
+// --- Image Display Helper ---
+const getImageSrc = (imageUrl) => {
+  if (!imageUrl || imageUrl.trim() === '') {
+    return 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTUwIiBoZWlnaHQ9IjE1MCIgdmlld0JveD0iMCAwIDE1MCAxNTAiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxyZWN0IHdpZHRoPSIxNTAiIGhlaWdodD0iMTUwIiBmaWxsPSIjRjNGNEY2Ii8+CjxwYXRoIGQ9Ik0zNyA0OEg2M1Y3NEgzN1Y0OFoiIGZpbGw9IiM5Q0E1QUYiLz4KPHBhdGggZD0iTTc1IDQ4SDEwMVY3NEg3NVY0OFoiIGZpbGw9IiM5Q0E1QUYiLz4KPHBhdGggZD0iTTQ5IDYwSDg3VjYySDQ5VjYwWiIgZmlsbD0iIzlDQTVBRiIvPgo8cGF0aCBkPSJNNDkgODRIODdWODZINDlWODRaIiBmaWxsPSIjOUNBNUFGIi8+CjxwYXRoIGQ9Ik01NyA5Nkg3OVY5OEg1N1Y5NloiIGZpbGw9IiM5Q0E1QUYiLz4KPC9zdmc+';
+  }
+  return imageUrl;
+};
+
+const handleImageLoad = (event) => {
+  // Reset fallback flag when image loads successfully
+  event.target.dataset.fallback = 'false';
+};
+
+// --- Product Add/Edit/Delete ---
 
 const handleAddProduct = () => {
   editingExistingProduct.value = false;
@@ -984,15 +939,83 @@ const handleAddProduct = () => {
     storeId: null,
     couponId: null
   };
+  resetFileUpload();
   showProductEditModal.value = true;
 };
 
+// const editProduct = (product) => {
+//   editingExistingProduct.value = true;
+//   editingExcelIndex.value = null;
+//   currentEditProduct.value = { ...product };
+//   showProductEditModal.value = true;
+// };
 const editProduct = (product) => {
   editingExistingProduct.value = true;
   editingExcelIndex.value = null;
   currentEditProduct.value = { ...product };
+  resetFileUpload();
+  // If editing and there's an existing image URL, default to URL method
+  if (product.imageUrl) {
+    imageUploadMethod.value = 'url';
+  }
   showProductEditModal.value = true;
 };
+
+// const saveProduct = async () => {
+//   loading.value = true;
+//   try {
+//     if (editingExcelIndex.value !== null) {
+//       // We're editing an Excel product before import
+//       excelProducts.value[editingExcelIndex.value] = { ...currentEditProduct.value };
+//       editingExcelIndex.value = null;
+//       showProductEditModal.value = false;
+//       // showExcelPreviewModal.value = true;
+//       excelUploadRef.value?.showPreview();
+//       popupRef.value.show('Product updated in preview.', 'success');
+//     } else if (editingExistingProduct.value) {
+//       // We're editing an existing product
+//       const response = await api.put(`/admin/product/${currentEditProduct.value.id}`, {
+//         name: currentEditProduct.value.name,
+//         price: currentEditProduct.value.price,
+//         description: currentEditProduct.value.description,
+//         imageUrl: currentEditProduct.value.imageUrl,
+//         categoryId: currentEditProduct.value.categoryId,
+//         subCategoryId: currentEditProduct.value.subCategoryId,
+//         storeId: currentEditProduct.value.storeId,
+//         couponId: currentEditProduct.value.couponId || null
+//       });
+      
+//       // Refresh products to show updated data
+//       await fetchProducts();
+      
+//       showProductEditModal.value = false;
+//       popupRef.value.show('Product updated successfully!', 'success');
+//     } else {
+//       // We're adding a new product
+//       const response = await api.post('/admin/product', {
+//         name: currentEditProduct.value.name,
+//         price: currentEditProduct.value.price,
+//         description: currentEditProduct.value.description,
+//         imageUrl: currentEditProduct.value.imageUrl,
+//         categoryId: currentEditProduct.value.categoryId,
+//         subCategoryId: currentEditProduct.value.subCategoryId,
+//         storeId: currentEditProduct.value.storeId,
+//         couponId: currentEditProduct.value.couponId || null
+//       });
+      
+//       // Refresh products to include the new one
+//       await fetchProducts();
+      
+//       showProductEditModal.value = false;
+//       popupRef.value.show('Product added successfully!', 'success');
+//     }
+//   } catch (error) {
+//     console.error('Error saving product:', error);
+//     popupRef.value.show(`Error saving product: ${error.response?.data || error.message}`, 'error');
+//   } finally {
+//     loading.value = false;
+//   }
+// };
 
 const saveProduct = async () => {
   loading.value = true;
@@ -1002,51 +1025,49 @@ const saveProduct = async () => {
       excelProducts.value[editingExcelIndex.value] = { ...currentEditProduct.value };
       editingExcelIndex.value = null;
       showProductEditModal.value = false;
-      // showExcelPreviewModal.value = true;
       excelUploadRef.value?.showPreview();
       popupRef.value.show('Product updated in preview.', 'success');
     } else if (editingExistingProduct.value) {
       // We're editing an existing product
-      const response = await api.put(`/admin/product/${currentEditProduct.value.id}`, {
-        name: currentEditProduct.value.name,
-        price: currentEditProduct.value.price,
-        description: currentEditProduct.value.description,
-        imageUrl: currentEditProduct.value.imageUrl,
-        categoryId: currentEditProduct.value.categoryId,
-        subCategoryId: currentEditProduct.value.subCategoryId,
-        storeId: currentEditProduct.value.storeId,
-        couponId: currentEditProduct.value.couponId || null
+      const formData = createFormData();
+      
+      const response = await api.put(`/admin/product/${currentEditProduct.value.id}`, formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data'
+        },
+        onUploadProgress: (progressEvent) => {
+          uploadProgress.value = Math.round((progressEvent.loaded * 100) / progressEvent.total);
+        }
       });
       
-      // Refresh products to show updated data
       await fetchProducts();
-      
       showProductEditModal.value = false;
+      resetFileUpload();
       popupRef.value.show('Product updated successfully!', 'success');
     } else {
       // We're adding a new product
-      const response = await api.post('/admin/product', {
-        name: currentEditProduct.value.name,
-        price: currentEditProduct.value.price,
-        description: currentEditProduct.value.description,
-        imageUrl: currentEditProduct.value.imageUrl,
-        categoryId: currentEditProduct.value.categoryId,
-        subCategoryId: currentEditProduct.value.subCategoryId,
-        storeId: currentEditProduct.value.storeId,
-        couponId: currentEditProduct.value.couponId || null
+      const formData = createFormData();
+      
+      const response = await api.post('/admin/product', formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data'
+        },
+        onUploadProgress: (progressEvent) => {
+          uploadProgress.value = Math.round((progressEvent.loaded * 100) / progressEvent.total);
+        }
       });
       
-      // Refresh products to include the new one
       await fetchProducts();
-      
       showProductEditModal.value = false;
+      resetFileUpload();
       popupRef.value.show('Product added successfully!', 'success');
     }
   } catch (error) {
     console.error('Error saving product:', error);
-    popupRef.value.show(`Error saving product: ${error.response?.data || error.message}`, 'error');
+    popupRef.value.show(`Error saving product: ${error.response?.data?.message || error.message}`, 'error');
   } finally {
     loading.value = false;
+    uploadProgress.value = 0;
   }
 };
 
@@ -1090,9 +1111,18 @@ const sortBy = (field) => {
   });
 };
 
-const handleImageError = (event) => {
-  event.target.src = 'https://via.placeholder.com/150?text=No+Image';
-};
+// --- Watchers & OnMounted ---
+
+// Watch for image upload method changes
+watch(imageUploadMethod, (newMethod) => {
+  if (newMethod === 'file') {
+    // Clear URL when switching to file
+    currentEditProduct.value.imageUrl = '';
+  } else if (newMethod === 'url') {
+    // Clear file when switching to URL
+    removeSelectedFile();
+  }
+});
 
 // Initialize component
 onMounted(async () => {
