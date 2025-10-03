@@ -129,6 +129,7 @@
                         :alt="item.name || 'Image'"
                         class="h-full w-full object-cover"
                         @error="handleImageError($event)"
+                        loading="lazy"
                       />
                     </div>
                     <div v-else-if="column.type === 'price'" class="text-sm text-gray-900">
@@ -291,7 +292,12 @@ const formatPrice = (price) => {
 };
 
 const handleImageError = (event) => {
-  event.target.src = 'https://via.placeholder.com/150?text=No+Image';
+  // Prevent infinite loop by checking if we're already showing fallback
+  if (event.target.dataset.fallback !== 'true') {
+    event.target.dataset.fallback = 'true';
+    event.target.src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTUwIiBoZWlnaHQ9IjE1MCIgdmlld0JveD0iMCAwIDE1MCAxNTAiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxyZWN0IHdpZHRoPSIxNTAiIGhlaWdodD0iMTUwIiBmaWxsPSIjRjNGNEY2Ii8+CjxwYXRoIGQ9Ik0zNyA0OEg2M1Y3NEgzN1Y0OFoiIGZpbGw9IiM5Q0E1QUYiLz4KPHBhdGggZD0iTTc1IDQ4SDEwMVY3NEg3NVY0OFoiIGZpbGw9IiM5Q0E1QUYiLz4KPHBhdGggZD0iTTQ5IDYwSDg3VjYySDQ5VjYwWiIgZmlsbD0iIzlDQTVBRiIvPgo8cGF0aCBkPSJNNDkgODRIODdWODZINDlWODRaIiBmaWxsPSIjOUNBNUFGIi8+CjxwYXRoIGQ9Ik01NyA5Nkg3OVY5OEg1N1Y5NloiIGZpbGw9IiM5Q0E1QUYiLz4KPC9zdmc+';
+    event.target.alt = 'No Image Available';
+  }
 };
 
 const processExcelFile = async () => {

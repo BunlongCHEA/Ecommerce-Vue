@@ -1,6 +1,6 @@
 <template>
   <div class="flex flex-col md:flex-row h-screen w-full overflow-hidden">
-    <!-- <LoadingOverlay :show="isLoading" /> -->
+    <LoadingOverlay :show="loading" />
     <PopupMessage ref="popupRef" />
 
     <!-- Header over both sections with bold background -->
@@ -88,13 +88,17 @@
 
 <script setup>
 import { ref, onMounted } from 'vue'
-import { useRoute } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 import PopupMessage from '@/components/PopupMessage.vue'
+import LoadingOverlay from '@/components/LoadingOverlay.vue'
 import api from '@/services/api'
 
 const route = useRoute()
+const router = useRouter()
 const email = ref('')
 const popupRef = ref(null)
+const durationWait = 1000 // 1 second
+const loading = ref(false)
 
 onMounted(() => {
   email.value = route.query.email || ''
