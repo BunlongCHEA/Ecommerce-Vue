@@ -219,6 +219,7 @@
       @data-import="handleDataImport"
       @upload-close="handleUploadClose"
       @preview-close="handlePreviewClose"
+      @sample-download="handleSampleDownload"
       ref="excelUploadRef"
     />
 
@@ -279,6 +280,20 @@
                   <option disabled :value="null">Select a category</option>
                   <option v-for="category in categories" :key="category.id" :value="category.id">
                     {{ category.name }}
+                  </option>
+                </select>
+              </div>
+              <div>
+                <label for="eventId" class="block text-sm font-medium text-gray-700">Event Campaign</label>
+                <select 
+                  id="eventId" 
+                  v-model="currentEditProduct.eventId" 
+                  class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                  required
+                >
+                  <option disabled :value="null">Select a event campaign</option>
+                  <option v-for="event in events" :key="event.id" :value="event.id">
+                    {{ event.name }}
                   </option>
                 </select>
               </div>
@@ -542,12 +557,14 @@ const loading = ref(false);
 const deleteLoading = ref(false);
 const popupRef = ref(null);
 const durationWait = 1000; // 1 second wait duration for animations
+const defaultImage = 'https://png.pngtree.com/png-vector/20221125/ourmid/pngtree-no-image-available-icon-flatvector-illustration-thumbnail-graphic-illustration-vector-png-image_40966590.jpg';
 
 const products = ref([]);
 const categories = ref([]);
 const subcategories = ref([]);
 const stores = ref([]);
 const coupons = ref([]);
+const events = ref([]);
 
 // Add these to your existing data/setup
 const imageUploadMethod = ref('url') // 'url' or 'file'
@@ -582,7 +599,8 @@ const currentEditProduct = ref({
   categoryId: null,
   subCategoryId: null,
   storeId: null,
-  couponId: null
+  couponId: null,
+  eventId: null
 });
 
 // Excel data
@@ -607,7 +625,8 @@ const excelColumnMapping = {
   'CategoryId': 'categoryId',
   'SubCategoryId': 'subCategoryId',
   'StoreId': 'storeId',
-  'CouponId': 'couponId'
+  'CouponId': 'couponId',
+  'EventId': 'eventId'
 };
 
 const excelDisplayColumns = [
@@ -617,7 +636,9 @@ const excelDisplayColumns = [
   { key: 'description', label: 'Description', type: 'text', wrapText: true, maxWidth: 'max-w-[200px]' },
   { key: 'categoryId', label: 'Category ID', type: 'text' },
   { key: 'subCategoryId', label: 'SubCategory ID', type: 'text' },
-  { key: 'storeId', label: 'Store ID', type: 'text' }
+  { key: 'storeId', label: 'Store ID', type: 'text' },
+  { key: 'couponId', label: 'Coupon ID', type: 'text' },
+  { key: 'eventId', label: 'Event ID', type: 'text' }
 ];
 
 const filteredSubcategories = computed(() => {
@@ -629,7 +650,7 @@ const filteredSubcategories = computed(() => {
 // --- Methods ---
 // --- FormData Helper Functions ---
 
-const createFormData = () => {
+const createFormData = async () => {
   const formData = new FormData();
   
   // Add text fields
@@ -638,10 +659,14 @@ const createFormData = () => {
   formData.append('Description', currentEditProduct.value.description || '');
   formData.append('CategoryId', currentEditProduct.value.categoryId.toString());
   formData.append('StoreId', currentEditProduct.value.storeId.toString());
+  // formData.append('EventId', currentEditProduct.value.eventId.toString());
   
   // Add optional fields
   if (currentEditProduct.value.subCategoryId) {
     formData.append('SubCategoryId', currentEditProduct.value.subCategoryId.toString());
+  }
+  if (currentEditProduct.value.eventId) {
+    formData.append('EventId', currentEditProduct.value.eventId.toString());
   }
   if (currentEditProduct.value.couponId) {
     formData.append('CouponId', currentEditProduct.value.couponId.toString());
@@ -652,8 +677,36 @@ const createFormData = () => {
     // File upload method
     formData.append('ImageFile', selectedFile.value);
   } else if (imageUploadMethod.value === 'url' && currentEditProduct.value.imageUrl) {
+    
+    try {
+      // Validate URL first
+      if (!isValidImageUrl(currentEditProduct.value.imageUrl)) {
+        throw new Error('Invalid image URL format');
+      }
+
+      popupRef.value?.show('Downloading image from URL...', 'info');
+        
+      const imageFile = await downloadImageFromUrl(
+        currentEditProduct.value.imageUrl, 
+        currentEditProduct.value.name || 'product'
+      );
+
+      if (imageFile) {
+        formData.append('ImageFile', imageFile);
+        console.log(`Downloaded and added image file: ${imageFile.name} (${imageFile.size} bytes)`);
+        popupRef.value?.show('Image downloaded successfully', 'success');
+      } else {
+        console.warn('Failed to download image, proceeding without image');
+        popupRef.value?.show('Warning: Could not download image from URL', 'warning');
+      }
+
+    } catch (error) {
+      console.error('Error downloading image from URL:', error);
+      popupRef.value?.show(`Error downloading image: ${error.message}`, 'error');
+    }
+
     // URL method - pass as regular field (backend can handle URL-based images differently if needed)
-    formData.append('ImageUrl', currentEditProduct.value.imageUrl);
+    // formData.append('ImageUrl', currentEditProduct.value.imageUrl);
   }
   
   return formData;
@@ -751,6 +804,25 @@ const fetchSubcategories = async () => {
   }
 };
 
+const fetchEvents = async () => {
+  try {
+    const response = await api.get('/event');
+    events.value = response.data.map(event => ({
+      id: event.id,
+      name: event.name,
+      // imageUrl: event.imageUrl,
+      // startDate: event.startDate,
+      // endDate: event.endDate,
+      // description: event.description
+    }));
+    console.log('Events fetched:', events.value);
+  } catch (error) {
+    console.error('Error fetching events:', error);
+    popupRef.value.show('Failed to load events.', 'error');
+    events.value = [];
+  }
+};
+
 const fetchStores = async () => {
   try {
     const response = await api.get('/store');
@@ -781,6 +853,8 @@ const fetchCoupons = async () => {
     coupons.value = [];
   }
 };
+
+//  --- Handle Page Load ---
 
 // Pagination controls
 const handlePageSizeChange = () => {
@@ -827,22 +901,208 @@ const handleExcelItemRemove = (index) => {
 
 const handleDataImport = async (data) => {
   excelLoading.value = true;
+  uploadProgress.value = 0;
+
   try {
-    const response = await api.post('/admin/product/batch', data);
+    // Show progress for image downloads
+    popupRef.value.show('Downloading images...', 'success');
+    
+    // Download all images first with progress tracking
+    const productsWithFiles = await downloadImagesWithProgress(data, (progress) => {
+      uploadProgress.value = Math.round(progress * 0.5); // First 50% for downloads
+    });
+
+    // Create FormData for multipart form submission
+    const formData = new FormData();
+
+    // Prepare products data (without image files)
+    const productsData = productsWithFiles.map(product => ({
+      name: product.name,
+      description: product.description || '',
+      price: parseFloat(product.price),
+      categoryId: parseInt(product.categoryId),
+      subCategoryId: parseInt(product.subCategoryId),
+      storeId: parseInt(product.storeId),
+      couponId: product.couponId ? parseInt(product.couponId) : null,
+      eventId: product.eventId ? parseInt(product.eventId) : null
+    }));
+
+    // productsWithFiles.forEach((product, index) => {
+    //   formData.append(`[${index}].Name`, product.name);
+    //   formData.append(`[${index}].Description`, product.description || '');
+    //   formData.append(`[${index}].Price`, product.price.toString());
+    //   formData.append(`[${index}].CategoryId`, product.categoryId.toString());
+    //   formData.append(`[${index}].SubCategoryId`, product.subCategoryId.toString());
+    //   formData.append(`[${index}].StoreId`, product.storeId.toString());
+      
+    //   // Optional fields
+    //   if (product.couponId) {
+    //     formData.append(`[${index}].CouponId`, product.couponId.toString());
+    //   }
+    //   if (product.eventId) {
+    //     formData.append(`[${index}].EventId`, product.eventId.toString());
+    //   }
+      
+    //   // Add image file if downloaded successfully
+    //   if (product.imageFile) {
+    //     formData.append(`[${index}].ImageUrl`, product.imageFile);
+    //     console.log(`Added image URL for product ${product.name}: ${product.imageFile}`);
+    //   }
+    // });
+
+    // Add products as JSON string
+    formData.append('products', JSON.stringify(productsData));
+    // console.log('Prepared products data for upload:', JSON.stringify(productsData));
+
+    // Add image files with indexed keys
+    productsWithFiles.forEach((product, index) => {
+      if (product.imageFile) {
+        formData.append(`files[${index}]`, product.imageFile);
+        console.log(`Added image file for product ${index}: ${product.imageFile.name} (${product.imageFile.size} bytes)`);
+      }
+    });
+
+    // Debug: Log FormData contents
+    console.log('FormData contents:');
+    for (let pair of formData.entries()) {
+      if (pair[1] instanceof File) {
+        console.log(`${pair[0]}: File(${pair[1].name}, ${pair[1].size} bytes)`);
+      } else {
+        console.log(`${pair[0]}: ${pair[1]}`);
+      }
+    }
+
+    // Upload to backend
+    popupRef.value.show('Uploading products...', 'success');
+
+    const response = await api.post('/admin/product/batch', formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data'
+      },
+      onUploadProgress: (progressEvent) => {
+        // uploadProgress.value = Math.round((progressEvent.loaded * 100) / progressEvent.total);
+        // Second 50% for upload
+        const uploadPercentage = Math.round((progressEvent.loaded * 100) / progressEvent.total);
+        uploadProgress.value = 50 + Math.round(uploadPercentage * 0.5);
+      }
+    });
     
     // Refresh the products list
     await fetchProducts();
     
     // Clear the Excel data
     excelUploadRef.value?.clearData();
-    
+
+    uploadProgress.value = 100;
     popupRef.value.show('Products imported successfully!', 'success');
   } catch (error) {
     console.error('Error importing products:', error);
     popupRef.value.show('Error importing products. Please try again.', 'error');
   } finally {
     excelLoading.value = false;
+    uploadProgress.value = 0;
   }
+};
+
+// Helper function to download images from URLs
+const downloadImageFromUrl = async (imageUrl, productName) => {
+  try {
+    // Skip if URL is empty or is a data URL (base64)
+    if (!imageUrl || imageUrl.startsWith('data:')) {
+      return null;
+    }
+
+    // Create a unique filename
+    const timestamp = Date.now();
+    const sanitizedProductName = productName.replace(/[^a-zA-Z0-9]/g, '_');
+    
+    // Fetch the image
+    const response = await fetch(imageUrl, {
+      mode: 'cors',
+      headers: {
+        'Accept': 'image/*'
+      }
+    });
+    
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+    
+    // Get the blob
+    const blob = await response.blob();
+    
+    // Validate that it's actually an image
+    if (!blob.type.startsWith('image/')) {
+      throw new Error(`Invalid content type: ${blob.type}`);
+    }
+    
+    // Determine file extension from content type
+    let extension = 'jpg'; // default
+    if (blob.type.includes('png')) extension = 'png';
+    else if (blob.type.includes('gif')) extension = 'gif';
+    else if (blob.type.includes('webp')) extension = 'webp';
+    else if (blob.type.includes('jpeg') || blob.type.includes('jpg')) extension = 'jpg';
+    
+    // Create filename
+    const filename = `${sanitizedProductName}_${timestamp}.${extension}`;
+    
+    // Create File object
+    const file = new File([blob], filename, { 
+      type: blob.type,
+      lastModified: timestamp 
+    });
+    
+    console.log(`Successfully downloaded image: ${filename} (${file.size} bytes)`);
+    return file;
+    
+  } catch (error) {
+    console.error(`Error downloading image from ${imageUrl}:`, error);
+    throw error;
+  }
+};
+
+// Helper function to validate image URLs
+const isValidImageUrl = (url) => {
+  if (!url || typeof url !== 'string') return false;
+  
+  // Check if it's a data URL (base64)
+  if (url.startsWith('data:image/')) return true;
+  
+  // Check if it's a valid HTTP/HTTPS URL
+  try {
+    const urlObj = new URL(url);
+    return urlObj.protocol === 'http:' || urlObj.protocol === 'https:';
+  } catch {
+    return false;
+  }
+};
+
+// Add progress tracking for multiple downloads
+const downloadImagesWithProgress = async (products, onProgress) => {
+  const results = [];
+  const total = products.length;
+  
+  for (let i = 0; i < products.length; i++) {
+    const product = products[i];
+    let imageFile = null;
+    
+    if (product.imageUrl && isValidImageUrl(product.imageUrl)) {
+      try {
+        imageFile = await downloadImageFromUrl(product.imageUrl, product.name);
+      } catch (error) {
+        console.warn(`Failed to download image for ${product.name}:`, error);
+      }
+    }
+    
+    results.push({ ...product, imageFile });
+    
+    // Update progress
+    if (onProgress) {
+      onProgress(Math.round(((i + 1) / total) * 100));
+    }
+  }
+  
+  return results;
 };
 
 const handleUploadClose = () => {
@@ -853,11 +1113,17 @@ const handlePreviewClose = () => {
   // Excel component handles its own preview modal
 };
 
+// Download sample file
+const handleSampleDownload = (format, data) => {
+  console.log(`Sample ${format} file downloaded with ${data.length} rows`);
+  // Optional: Track download analytics
+};
+
 const formatPrice = (price) => {
   return parseFloat(price).toFixed(2);
 };
 
-// --- Image Upload Handlers ---
+// --- Image Files Upload Handlers in jpeg, jpg, png, gif, webp ---
 
 const handleFileSelect = (event) => {
   const file = event.target.files[0]
@@ -877,6 +1143,7 @@ const handleFileSelect = (event) => {
     return
   }
 
+  // Set selected file
   selectedFile.value = file
   
   // Create preview URL
@@ -905,15 +1172,15 @@ const handleImageError = (event) => {
   // Prevent infinite loop by checking if we're already showing fallback
   if (event.target.dataset.fallback !== 'true') {
     event.target.dataset.fallback = 'true';
-    event.target.src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTUwIiBoZWlnaHQ9IjE1MCIgdmlld0JveD0iMCAwIDE1MCAxNTAiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxyZWN0IHdpZHRoPSIxNTAiIGhlaWdodD0iMTUwIiBmaWxsPSIjRjNGNEY2Ii8+CjxwYXRoIGQ9Ik0zNyA0OEg2M1Y3NEgzN1Y0OFoiIGZpbGw9IiM5Q0E1QUYiLz4KPHBhdGggZD0iTTc1IDQ4SDEwMVY3NEg3NVY0OFoiIGZpbGw9IiM5Q0E1QUYiLz4KPHBhdGggZD0iTTQ5IDYwSDg3VjYySDQ5VjYwWiIgZmlsbD0iIzlDQTVBRiIvPgo8cGF0aCBkPSJNNDkgODRIODdWODZINDlWODRaIiBmaWxsPSIjOUNBNUFGIi8+CjxwYXRoIGQ9Ik01NyA5Nkg3OVY5OEg1N1Y5NloiIGZpbGw9IiM5Q0E1QUYiLz4KPC9zdmc+';
+    event.target.src = defaultImage;
     event.target.alt = 'No Image Available';
   }
 };
 
-// --- Image Display Helper ---
+// Return default image if URL is empty or invalid
 const getImageSrc = (imageUrl) => {
   if (!imageUrl || imageUrl.trim() === '') {
-    return 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTUwIiBoZWlnaHQ9IjE1MCIgdmlld0JveD0iMCAwIDE1MCAxNTAiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxyZWN0IHdpZHRoPSIxNTAiIGhlaWdodD0iMTUwIiBmaWxsPSIjRjNGNEY2Ii8+CjxwYXRoIGQ9Ik0zNyA0OEg2M1Y3NEgzN1Y0OFoiIGZpbGw9IiM5Q0E1QUYiLz4KPHBhdGggZD0iTTc1IDQ4SDEwMVY3NEg3NVY0OFoiIGZpbGw9IiM5Q0E1QUYiLz4KPHBhdGggZD0iTTQ5IDYwSDg3VjYySDQ5VjYwWiIgZmlsbD0iIzlDQTVBRiIvPgo8cGF0aCBkPSJNNDkgODRIODdWODZINDlWODRaIiBmaWxsPSIjOUNBNUFGIi8+CjxwYXRoIGQ9Ik01NyA5Nkg3OVY5OEg1N1Y5NloiIGZpbGw9IiM5Q0E1QUYiLz4KPC9zdmc+';
+    return defaultImage;
   }
   return imageUrl;
 };
@@ -935,6 +1202,7 @@ const handleAddProduct = () => {
     description: '',
     imageUrl: '',
     categoryId: null,
+    eventId: null,
     subCategoryId: null,
     storeId: null,
     couponId: null
@@ -943,12 +1211,6 @@ const handleAddProduct = () => {
   showProductEditModal.value = true;
 };
 
-// const editProduct = (product) => {
-//   editingExistingProduct.value = true;
-//   editingExcelIndex.value = null;
-//   currentEditProduct.value = { ...product };
-//   showProductEditModal.value = true;
-// };
 const editProduct = (product) => {
   editingExistingProduct.value = true;
   editingExcelIndex.value = null;
@@ -960,62 +1222,6 @@ const editProduct = (product) => {
   }
   showProductEditModal.value = true;
 };
-
-// const saveProduct = async () => {
-//   loading.value = true;
-//   try {
-//     if (editingExcelIndex.value !== null) {
-//       // We're editing an Excel product before import
-//       excelProducts.value[editingExcelIndex.value] = { ...currentEditProduct.value };
-//       editingExcelIndex.value = null;
-//       showProductEditModal.value = false;
-//       // showExcelPreviewModal.value = true;
-//       excelUploadRef.value?.showPreview();
-//       popupRef.value.show('Product updated in preview.', 'success');
-//     } else if (editingExistingProduct.value) {
-//       // We're editing an existing product
-//       const response = await api.put(`/admin/product/${currentEditProduct.value.id}`, {
-//         name: currentEditProduct.value.name,
-//         price: currentEditProduct.value.price,
-//         description: currentEditProduct.value.description,
-//         imageUrl: currentEditProduct.value.imageUrl,
-//         categoryId: currentEditProduct.value.categoryId,
-//         subCategoryId: currentEditProduct.value.subCategoryId,
-//         storeId: currentEditProduct.value.storeId,
-//         couponId: currentEditProduct.value.couponId || null
-//       });
-      
-//       // Refresh products to show updated data
-//       await fetchProducts();
-      
-//       showProductEditModal.value = false;
-//       popupRef.value.show('Product updated successfully!', 'success');
-//     } else {
-//       // We're adding a new product
-//       const response = await api.post('/admin/product', {
-//         name: currentEditProduct.value.name,
-//         price: currentEditProduct.value.price,
-//         description: currentEditProduct.value.description,
-//         imageUrl: currentEditProduct.value.imageUrl,
-//         categoryId: currentEditProduct.value.categoryId,
-//         subCategoryId: currentEditProduct.value.subCategoryId,
-//         storeId: currentEditProduct.value.storeId,
-//         couponId: currentEditProduct.value.couponId || null
-//       });
-      
-//       // Refresh products to include the new one
-//       await fetchProducts();
-      
-//       showProductEditModal.value = false;
-//       popupRef.value.show('Product added successfully!', 'success');
-//     }
-//   } catch (error) {
-//     console.error('Error saving product:', error);
-//     popupRef.value.show(`Error saving product: ${error.response?.data || error.message}`, 'error');
-//   } finally {
-//     loading.value = false;
-//   }
-// };
 
 const saveProduct = async () => {
   loading.value = true;
@@ -1111,6 +1317,7 @@ const sortBy = (field) => {
   });
 };
 
+
 // --- Watchers & OnMounted ---
 
 // Watch for image upload method changes
@@ -1135,6 +1342,7 @@ onMounted(async () => {
         fetchProducts(),
         fetchCategories(),
         fetchSubcategories(),
+        fetchEvents(),
         fetchStores(),
         fetchCoupons()
       ]);
