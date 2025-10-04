@@ -550,7 +550,11 @@ defineExpose({
   },
   updateItem: (index, updatedItem) => {
     if (index >= 0 && index < excelData.value.length) {
-      excelData.value[index] = updatedItem;
+      // excelData.value[index] = updatedItem;
+
+      // Use Vue's reactivity to ensure the change is detected
+      excelData.value[index] = { ...updatedItem };
+      console.log(`Updated item at index ${index}:`, excelData.value[index]);
     }
   },
   showPreview: () => {
@@ -559,6 +563,12 @@ defineExpose({
   hidePreview: () => {
     showExcelPreviewModal.value = false;
   },
-  downloadSample
+  downloadSample,
+  // Add a method to get current data
+  getData: () => excelData.value,
+  // Add a method to replace all data
+  setData: (newData) => {
+    excelData.value = [...newData];
+  }
 });
 </script>

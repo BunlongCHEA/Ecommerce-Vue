@@ -209,7 +209,7 @@
       :upload-title="'Upload Product Excel File'"
       :preview-title="'Review Products'"
       :preview-description="'Please review the imported products before adding them to your catalog.'"
-      :column-mapping="excelColumnMapping"
+      :column-mapping="excelColumnMapping" 
       :display-columns="excelDisplayColumns"
       :item-label="'Products'"
       :loading="excelLoading"
@@ -606,6 +606,7 @@ const currentEditProduct = ref({
 // Excel data
 const editingExistingProduct = ref(false);
 const editingExcelIndex = ref(null);
+const excelProducts = ref([]);
 const productToDelete = ref(null);
 
 // Excel upload state
@@ -651,33 +652,31 @@ const filteredSubcategories = computed(() => {
 // --- FormData Helper Functions ---
 
 const createFormData = async () => {
-  const formData = new FormData();
-  
-  // Add text fields
-  formData.append('Name', currentEditProduct.value.name);
-  formData.append('Price', currentEditProduct.value.price.toString());
-  formData.append('Description', currentEditProduct.value.description || '');
-  formData.append('CategoryId', currentEditProduct.value.categoryId.toString());
-  formData.append('StoreId', currentEditProduct.value.storeId.toString());
-  // formData.append('EventId', currentEditProduct.value.eventId.toString());
-  
-  // Add optional fields
-  if (currentEditProduct.value.subCategoryId) {
-    formData.append('SubCategoryId', currentEditProduct.value.subCategoryId.toString());
-  }
-  if (currentEditProduct.value.eventId) {
-    formData.append('EventId', currentEditProduct.value.eventId.toString());
-  }
-  if (currentEditProduct.value.couponId) {
-    formData.append('CouponId', currentEditProduct.value.couponId.toString());
-  }
-  
+  const productData = {
+    name: currentEditProduct.value.name,
+    price: parseFloat(currentEditProduct.value.price),
+    description: currentEditProduct.value.description || '',
+    categoryId: parseInt(currentEditProduct.value.categoryId),
+    storeId: parseInt(currentEditProduct.value.storeId),
+    subCategoryId: currentEditProduct.value.subCategoryId ? parseInt(currentEditProduct.value.subCategoryId) : null,
+    eventId: currentEditProduct.value.eventId ? parseInt(currentEditProduct.value.eventId) : null,
+    couponId: currentEditProduct.value.couponId ? parseInt(currentEditProduct.value.couponId) : null
+  };
+
   // Handle image based on upload method
   if (imageUploadMethod.value === 'file' && selectedFile.value) {
-    // File upload method
-    formData.append('ImageFile', selectedFile.value);
+    // File upload method - convert to base64
+    try {
+      const base64 = await fileToBase64(selectedFile.value);
+      productData.imageBase64 = base64;
+      productData.imageFileName = selectedFile.value.name;
+      productData.imageContentType = selectedFile.value.type;
+      console.log(`Converted file to base64: ${selectedFile.value.name} (${selectedFile.value.size} bytes)`);
+    } catch (error) {
+      console.error('Error converting file to base64:', error);
+      popupRef.value?.show('Error processing image file', 'error');
+    }
   } else if (imageUploadMethod.value === 'url' && currentEditProduct.value.imageUrl) {
-    
     try {
       // Validate URL first
       if (!isValidImageUrl(currentEditProduct.value.imageUrl)) {
@@ -685,32 +684,30 @@ const createFormData = async () => {
       }
 
       popupRef.value?.show('Downloading image from URL...', 'info');
-        
-      const imageFile = await downloadImageFromUrl(
+      
+      const imageData = await downloadImageFromUrl(
         currentEditProduct.value.imageUrl, 
         currentEditProduct.value.name || 'product'
       );
 
-      if (imageFile) {
-        formData.append('ImageFile', imageFile);
-        console.log(`Downloaded and added image file: ${imageFile.name} (${imageFile.size} bytes)`);
+      if (imageData) {
+        productData.imageBase64 = imageData.base64;
+        productData.imageFileName = imageData.fileName;
+        productData.imageContentType = imageData.contentType;
+        console.log(`Downloaded and converted image: ${imageData.fileName}`);
         popupRef.value?.show('Image downloaded successfully', 'success');
       } else {
         console.warn('Failed to download image, proceeding without image');
         popupRef.value?.show('Warning: Could not download image from URL', 'warning');
       }
-
     } catch (error) {
       console.error('Error downloading image from URL:', error);
       popupRef.value?.show(`Error downloading image: ${error.message}`, 'error');
     }
-
-    // URL method - pass as regular field (backend can handle URL-based images differently if needed)
-    // formData.append('ImageUrl', currentEditProduct.value.imageUrl);
   }
   
-  return formData;
-};
+  return productData;
+}
 
 const resetFileUpload = () => {
   selectedFile.value = null;
@@ -854,6 +851,7 @@ const fetchCoupons = async () => {
   }
 };
 
+
 //  --- Handle Page Load ---
 
 // Pagination controls
@@ -874,6 +872,7 @@ const applyFilters = () => {
   fetchProducts();
 };
 
+
 // --- Handle Excel Upload ---
 
 const openExcelUploadModal = () => {
@@ -890,7 +889,10 @@ const handleFileProcessed = (data, error) => {
 
 const handleExcelItemEdit = (index, item) => {
   editingExcelIndex.value = index;
-  currentEditProduct.value = { ...item };
+  // currentEditProduct.value = { ...item };
+  
+  // Create a deep copy to avoid reference issues
+  currentEditProduct.value = JSON.parse(JSON.stringify(item));
   showProductEditModal.value = true;
 };
 
@@ -912,9 +914,6 @@ const handleDataImport = async (data) => {
       uploadProgress.value = Math.round(progress * 0.5); // First 50% for downloads
     });
 
-    // Create FormData for multipart form submission
-    const formData = new FormData();
-
     // Prepare products data (without image files)
     const productsData = productsWithFiles.map(product => ({
       name: product.name,
@@ -924,60 +923,20 @@ const handleDataImport = async (data) => {
       subCategoryId: parseInt(product.subCategoryId),
       storeId: parseInt(product.storeId),
       couponId: product.couponId ? parseInt(product.couponId) : null,
-      eventId: product.eventId ? parseInt(product.eventId) : null
+      eventId: product.eventId ? parseInt(product.eventId) : null,
+      imageBase64: product.imageBase64 || null,
+      imageFileName: product.imageFileName || null,
+      imageContentType: product.imageContentType || null
     }));
 
-    // productsWithFiles.forEach((product, index) => {
-    //   formData.append(`[${index}].Name`, product.name);
-    //   formData.append(`[${index}].Description`, product.description || '');
-    //   formData.append(`[${index}].Price`, product.price.toString());
-    //   formData.append(`[${index}].CategoryId`, product.categoryId.toString());
-    //   formData.append(`[${index}].SubCategoryId`, product.subCategoryId.toString());
-    //   formData.append(`[${index}].StoreId`, product.storeId.toString());
-      
-    //   // Optional fields
-    //   if (product.couponId) {
-    //     formData.append(`[${index}].CouponId`, product.couponId.toString());
-    //   }
-    //   if (product.eventId) {
-    //     formData.append(`[${index}].EventId`, product.eventId.toString());
-    //   }
-      
-    //   // Add image file if downloaded successfully
-    //   if (product.imageFile) {
-    //     formData.append(`[${index}].ImageUrl`, product.imageFile);
-    //     console.log(`Added image URL for product ${product.name}: ${product.imageFile}`);
-    //   }
-    // });
-
-    // Add products as JSON string
-    formData.append('products', JSON.stringify(productsData));
-    // console.log('Prepared products data for upload:', JSON.stringify(productsData));
-
-    // Add image files with indexed keys
-    productsWithFiles.forEach((product, index) => {
-      if (product.imageFile) {
-        formData.append(`files[${index}]`, product.imageFile);
-        console.log(`Added image file for product ${index}: ${product.imageFile.name} (${product.imageFile.size} bytes)`);
-      }
-    });
-
-    // Debug: Log FormData contents
-    console.log('FormData contents:');
-    for (let pair of formData.entries()) {
-      if (pair[1] instanceof File) {
-        console.log(`${pair[0]}: File(${pair[1].name}, ${pair[1].size} bytes)`);
-      } else {
-        console.log(`${pair[0]}: ${pair[1]}`);
-      }
-    }
+    console.log(`Prepared ${productsData.length} products for upload`);
 
     // Upload to backend
     popupRef.value.show('Uploading products...', 'success');
 
-    const response = await api.post('/admin/product/batch', formData, {
+    const response = await api.post('/admin/product/batch', productsData, {
       headers: {
-        'Content-Type': 'multipart/form-data'
+        'Content-Type': 'application/json'
       },
       onUploadProgress: (progressEvent) => {
         // uploadProgress.value = Math.round((progressEvent.loaded * 100) / progressEvent.total);
@@ -1004,12 +963,26 @@ const handleDataImport = async (data) => {
   }
 };
 
-// Helper function to download images from URLs
+// Helper function to convert File to base64
+const fileToBase64 = (file) => {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.readAsDataURL(file);
+    reader.onload = () => resolve(reader.result);
+    reader.onerror = error => reject(error);
+  });
+};
+
+// Helper function to download images from URLs and convert to base64
 const downloadImageFromUrl = async (imageUrl, productName) => {
   try {
-    // Skip if URL is empty or is a data URL (base64)
+    // Skip if URL is empty or is already a data URL (base64)
     if (!imageUrl || imageUrl.startsWith('data:')) {
-      return null;
+      return imageUrl.startsWith('data:') ? {
+        base64: imageUrl,
+        fileName: `${productName}.jpg`,
+        contentType: imageUrl.split(';')[0].split(':')[1] || 'image/jpeg'
+      } : null;
     }
 
     // Create a unique filename
@@ -1046,14 +1019,20 @@ const downloadImageFromUrl = async (imageUrl, productName) => {
     // Create filename
     const filename = `${sanitizedProductName}_${timestamp}.${extension}`;
     
-    // Create File object
-    const file = new File([blob], filename, { 
-      type: blob.type,
-      lastModified: timestamp 
+    // Convert blob to base64
+    const base64 = await new Promise((resolve) => {
+      const reader = new FileReader();
+      reader.onloadend = () => resolve(reader.result);
+      reader.readAsDataURL(blob);
     });
     
-    console.log(`Successfully downloaded image: ${filename} (${file.size} bytes)`);
-    return file;
+    console.log(`Successfully downloaded and converted image: ${filename} (${blob.size} bytes)`);
+    
+    return {
+      base64: base64,
+      fileName: filename,
+      contentType: blob.type
+    };
     
   } catch (error) {
     console.error(`Error downloading image from ${imageUrl}:`, error);
@@ -1077,28 +1056,36 @@ const isValidImageUrl = (url) => {
   }
 };
 
-// Add progress tracking for multiple downloads
+// Helper function to download multiple images with progress tracking
 const downloadImagesWithProgress = async (products, onProgress) => {
   const results = [];
   const total = products.length;
   
-  for (let i = 0; i < products.length; i++) {
+  for (let i = 0; i < total; i++) {
     const product = products[i];
-    let imageFile = null;
+    const productData = { ...product };
     
-    if (product.imageUrl && isValidImageUrl(product.imageUrl)) {
-      try {
-        imageFile = await downloadImageFromUrl(product.imageUrl, product.name);
-      } catch (error) {
-        console.warn(`Failed to download image for ${product.name}:`, error);
+    try {
+      if (product.imageUrl && isValidImageUrl(product.imageUrl)) {
+        const imageData = await downloadImageFromUrl(product.imageUrl, product.name || `product_${i}`);
+        
+        if (imageData) {
+          productData.imageBase64 = imageData.base64;
+          productData.imageFileName = imageData.fileName;
+          productData.imageContentType = imageData.contentType;
+          console.log(`Downloaded image for product ${i + 1}/${total}: ${product.name}`);
+        }
       }
+    } catch (error) {
+      console.error(`Failed to download image for product ${product.name}:`, error);
+      // Continue without image for this product
     }
     
-    results.push({ ...product, imageFile });
+    results.push(productData);
     
-    // Update progress
+    // Report progress
     if (onProgress) {
-      onProgress(Math.round(((i + 1) / total) * 100));
+      onProgress((i + 1) / total);
     }
   }
   
@@ -1227,19 +1214,34 @@ const saveProduct = async () => {
   loading.value = true;
   try {
     if (editingExcelIndex.value !== null) {
+      // Get current data from Excel component
+      const currentData = excelUploadRef.value?.getData() || [];
+
+      if (editingExcelIndex.value < currentData.length) {
+        // Update the specific item
+        currentData[editingExcelIndex.value] = { ...currentEditProduct.value };
+        
+        // Set the updated data back to the Excel component
+        excelUploadRef.value?.setData(currentData);
+        
+        console.log('Successfully updated Excel product:', currentEditProduct.value);
+      }
+
       // We're editing an Excel product before import
-      excelProducts.value[editingExcelIndex.value] = { ...currentEditProduct.value };
+      // excelProducts.value[editingExcelIndex.value] = { ...currentEditProduct.value };
+      
       editingExcelIndex.value = null;
       showProductEditModal.value = false;
       excelUploadRef.value?.showPreview();
       popupRef.value.show('Product updated in preview.', 'success');
     } else if (editingExistingProduct.value) {
       // We're editing an existing product
-      const formData = createFormData();
+      // const formData = createFormData();
+      const productData = await createFormData();
       
-      const response = await api.put(`/admin/product/${currentEditProduct.value.id}`, formData, {
+      const response = await api.put(`/admin/product/${currentEditProduct.value.id}`, productData, {
         headers: {
-          'Content-Type': 'multipart/form-data'
+          'Content-Type': 'application/json'
         },
         onUploadProgress: (progressEvent) => {
           uploadProgress.value = Math.round((progressEvent.loaded * 100) / progressEvent.total);
@@ -1252,11 +1254,12 @@ const saveProduct = async () => {
       popupRef.value.show('Product updated successfully!', 'success');
     } else {
       // We're adding a new product
-      const formData = createFormData();
+      // const formData = createFormData();
+      const productData = await createFormData();
       
-      const response = await api.post('/admin/product', formData, {
+      const response = await api.post('/admin/product', productData, {
         headers: {
-          'Content-Type': 'multipart/form-data'
+          'Content-Type': 'application/json'
         },
         onUploadProgress: (progressEvent) => {
           uploadProgress.value = Math.round((progressEvent.loaded * 100) / progressEvent.total);
