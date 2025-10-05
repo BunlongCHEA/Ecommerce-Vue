@@ -315,7 +315,7 @@ const defaultSampleData = [
     SubCategoryId: 1,
     CouponId: null,
     StoreId: 1,
-    EventId: null
+    // EventId: null
   },
   {
     Name: 'Sample Product 2',
@@ -326,7 +326,7 @@ const defaultSampleData = [
     SubCategoryId: 3,
     CouponId: 1,
     StoreId: 1,
-    EventId: 2
+    // EventId: 2
   }
 ];
 
@@ -394,13 +394,14 @@ const downloadSampleExcel = (data, timestamp) => {
     // Add some styling/formatting if needed
     const columnWidths = [
       { wch: 20 }, // Name
-      { wch: 40 }, // Description
       { wch: 10 }, // Price
+      { wch: 40 }, // ImageUrl
+      { wch: 40 }, // Description
       { wch: 12 }, // CategoryId
       { wch: 15 }, // SubCategoryId
       { wch: 10 }, // CouponId
-      { wch: 10 }, // StoreId
-      { wch: 10 }  // EventId
+      { wch: 10 } // StoreId
+      // { wch: 10 }  // EventId
     ];
     worksheet['!cols'] = columnWidths;
     

@@ -402,6 +402,8 @@ const debounceSearch = () => {
   }, 500)
 }
 
+// --- Methods to Fetch API ---
+
 // Method to fetch products with server-side pagination and filtering
 const fetchProducts = async () => {
   loading.value = true
@@ -481,6 +483,8 @@ const handleImageError = (event, slide) => {
 //   }
 // };
 
+// --- Event Slide Handling ---
+
 // Add these reactive variables after existing refs
 const selectedEventId = ref(null)
 
@@ -526,6 +530,8 @@ const fetchEvents = async () => {
   }
 }
 
+// --- Filter Handling with Category & Subscategory ---
+
 // Fetch categories and subcategories 
 const fetchCategoriesAndSubcategories = async () => {
   try {
@@ -548,8 +554,7 @@ const applyFilters = () => {
   fetchProducts()
 }
 
-// Pagination controls
-// Function to change page
+// Pagination controls with Function to change page
 const changePage = (page) => {
   currentPage.value = page
   fetchProducts()
@@ -566,6 +571,9 @@ const changePageSize = (size) => {
   currentPage.value = 1 // Reset to first page when page size changes
   fetchProducts()
 }
+
+
+// --- Cart & Quantity Management ---
 
 // BUTTON QTY: Methods to Handle Quantity Changes
 const increaseQuantity = (product) => {
@@ -631,6 +639,9 @@ const addToCart = (product) => {
   quantities.value[product.id] = 0
 }
 
+
+// --- Navigation, Pagination, and Computing Total ---
+
 // Navigate to Cart Page
 const navigateToCart = () => {
   loading.value = true
@@ -679,6 +690,8 @@ const loadMoreCategories = () => {
 const loadMoreSubCategories = () => {
   subCategoriesPage.value++
 }
+
+// --- Watchers & OnMounted ---
 
 // Watch for changes in filters and pagination
 watch(

@@ -283,7 +283,7 @@
                   </option>
                 </select>
               </div>
-              <div>
+              <!-- <div>
                 <label for="eventId" class="block text-sm font-medium text-gray-700">Event Campaign</label>
                 <select 
                   id="eventId" 
@@ -296,7 +296,7 @@
                     {{ event.name }}
                   </option>
                 </select>
-              </div>
+              </div> -->
               <div>
                 <label for="subCategoryId" class="block text-sm font-medium text-gray-700">Subcategory</label>
                 <select 
@@ -600,7 +600,7 @@ const currentEditProduct = ref({
   subCategoryId: null,
   storeId: null,
   couponId: null,
-  eventId: null
+  // eventId: null
 });
 
 // Excel data
@@ -627,7 +627,7 @@ const excelColumnMapping = {
   'SubCategoryId': 'subCategoryId',
   'StoreId': 'storeId',
   'CouponId': 'couponId',
-  'EventId': 'eventId'
+  // 'EventId': 'eventId'
 };
 
 const excelDisplayColumns = [
@@ -639,7 +639,7 @@ const excelDisplayColumns = [
   { key: 'subCategoryId', label: 'SubCategory ID', type: 'text' },
   { key: 'storeId', label: 'Store ID', type: 'text' },
   { key: 'couponId', label: 'Coupon ID', type: 'text' },
-  { key: 'eventId', label: 'Event ID', type: 'text' }
+  // { key: 'eventId', label: 'Event ID', type: 'text' }
 ];
 
 const filteredSubcategories = computed(() => {
@@ -659,7 +659,7 @@ const createFormData = async () => {
     categoryId: parseInt(currentEditProduct.value.categoryId),
     storeId: parseInt(currentEditProduct.value.storeId),
     subCategoryId: currentEditProduct.value.subCategoryId ? parseInt(currentEditProduct.value.subCategoryId) : null,
-    eventId: currentEditProduct.value.eventId ? parseInt(currentEditProduct.value.eventId) : null,
+    // eventId: currentEditProduct.value.eventId ? parseInt(currentEditProduct.value.eventId) : null,
     couponId: currentEditProduct.value.couponId ? parseInt(currentEditProduct.value.couponId) : null
   };
 
@@ -923,7 +923,7 @@ const handleDataImport = async (data) => {
       subCategoryId: parseInt(product.subCategoryId),
       storeId: parseInt(product.storeId),
       couponId: product.couponId ? parseInt(product.couponId) : null,
-      eventId: product.eventId ? parseInt(product.eventId) : null,
+      // eventId: product.eventId ? parseInt(product.eventId) : null,
       imageBase64: product.imageBase64 || null,
       imageFileName: product.imageFileName || null,
       imageContentType: product.imageContentType || null
@@ -1189,7 +1189,7 @@ const handleAddProduct = () => {
     description: '',
     imageUrl: '',
     categoryId: null,
-    eventId: null,
+    // eventId: null,
     subCategoryId: null,
     storeId: null,
     couponId: null
