@@ -64,7 +64,7 @@ deploy:
     - kubectl create namespace production --dry-run=client -o yaml | kubectl apply -f -
 
     # Apply ArgoCD app & DB manifests for deployment
-    - kubectl apply -f deploy/k8s/argocd
+    - kubectl apply -f src/deploy/k8s/argocd
 
     # Optionally, trigger sync immediately; -n argocd: namespace where ArgoCD is installed, use for store metadata of db & application, but actual build is in production namespace
     - |
