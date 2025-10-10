@@ -44,7 +44,7 @@ build:
     - main
     - develop
 
-# Deploy app & database to GKE using kubectl & ArgoCD
+# Deploy app to GKE using kubectl & ArgoCD
 deploy:
   stage: deploy
   image: google/cloud-sdk:alpine
