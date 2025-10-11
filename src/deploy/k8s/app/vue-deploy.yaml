@@ -16,6 +16,7 @@ spec:
       containers:
       - name: vue-app
         image: registry.gitlab.com/bunlongchea/ecommerce-vue:latest # Update with your registry
+        imagePullPolicy: Always # Always pull the latest image
         ports:
         - containerPort: 8080
         env:
@@ -49,7 +50,6 @@ spec:
           timeoutSeconds: 3
           failureThreshold: 3
       restartPolicy: Always
-      imagePullPolicy: Always # Always pull the latest image
 
 ---
 apiVersion: v1
