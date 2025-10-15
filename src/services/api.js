@@ -9,13 +9,23 @@ export const setRouter = (vueRouter) => {
   router = vueRouter
 }
 
+// Get environment variables with fallback values
+const getApiConfig = () => {
+  const baseURL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5169/api'
+  const timeout = parseInt(import.meta.env.VITE_API_TIMEOUT) || 10000
+  
+  return { baseURL, timeout }
+}
+
+const { baseURL, timeout } = getApiConfig()
+
 // Create an Axios instance for the ASP.NET backend
 const api = axios.create({
-  baseURL: 'http://localhost:5169/api', // ASP.NET backend URL
+  baseURL, // ASP.NET backend URL
   headers: {
     'Content-Type': 'application/json',
   },
-  timeout: 10000, // Timeout for requests.If a request takes longer than 5 seconds, it will be automatically canceled.
+  timeout, // Timeout for requests.If a request takes longer than 5 seconds, it will be automatically canceled.
 })
 
 // Function to set the Authorization token

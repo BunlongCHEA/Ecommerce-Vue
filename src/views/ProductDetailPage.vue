@@ -112,7 +112,7 @@
             </div>
 
             <!-- Rating -->
-            <div class="flex items-center gap-2">
+            <!-- <div class="flex items-center gap-2">
               <div class="flex items-center">
                 <div class="flex">
                   <svg 
@@ -131,7 +131,7 @@
               <span class="text-sm text-blue-600 hover:underline cursor-pointer">
                 See all {{ product.reviewCount || 512 }} reviews
               </span>
-            </div>
+            </div> -->
 
             <!-- Colors -->
             <div v-if="availableColors.length > 0">
@@ -153,7 +153,7 @@
             <div v-if="availableSizes.length > 0">
               <div class="flex justify-between items-center mb-3">
                 <h3 class="text-lg font-medium text-gray-900">Size</h3>
-                <button class="text-sm text-blue-600 hover:underline">Size chart</button>
+                <!-- <button class="text-sm text-blue-600 hover:underline">Size chart</button> -->
               </div>
               <div class="grid grid-cols-6 gap-2">
                 <button
@@ -307,7 +307,7 @@ const availableColors = ref([
   { name: 'White', value: '#FFFFFF' }
 ])
 
-const availableSizes = ref(['XXS', 'XS', 'S', 'M', 'L', 'XL'])
+const availableSizes = ref(['XS', 'S', 'M', 'L', 'XL'])
 
 // Computed properties
 const productImages = computed(() => {

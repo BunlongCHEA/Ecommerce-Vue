@@ -14,15 +14,21 @@ class ChatService {
     }
   }
 
-  async connect(accessToken, baseUrl = 'http://localhost:5169') {
+  async connect(accessToken, baseUrl = null) {
     if (this.isConnected) {
       return
     }
 
+    // Use environment variable or fallback to parameter or default
+    const signalrBaseUrl = baseUrl || 
+                          import.meta.env.VITE_SIGNALR_BASE_URL || 
+                          'http://localhost:5169'
+
     // Determine the correct base URL based on environment
-    const hubUrl = baseUrl.includes('localhost') 
-      ? `${baseUrl}/chathub` 
-      : `${baseUrl}/chathub`
+    // const hubUrl = signalrBaseUrl.includes('localhost') 
+    //   ? `${baseUrl}/chathub` 
+    //   : `${baseUrl}/chathub`
+    const hubUrl = `${signalrBaseUrl}/chathub`
 
     console.log('Connecting to SignalR hub at:', hubUrl)
 
