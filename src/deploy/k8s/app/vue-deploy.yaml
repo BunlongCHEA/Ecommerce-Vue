@@ -66,28 +66,28 @@ spec:
       targetPort: 8080
   type: ClusterIP
 
----
-apiVersion: v1
-kind: ConfigMap
-metadata:
-  name: custom-headers
-  namespace: production
-data:
-  X-Frame-Options: "SAMEORIGIN"
-  X-Content-Type-Options: "nosniff"
-  X-XSS-Protection: "1; mode=block"
-  Content-Security-Policy: "default-src 'self' https: data: blob: 'unsafe-inline'; connect-src 'self' ws: wss: https: wss://ecommerceapi.bunlong.site https://ecommerceapi.bunlong.site; script-src 'self' 'unsafe-inline' 'unsafe-eval'; img-src 'self' data: https: blob:; style-src 'self' 'unsafe-inline'; font-src 'self' data: https:;"
+# ---
+# apiVersion: v1
+# kind: ConfigMap
+# metadata:
+#   name: custom-headers
+#   namespace: production
+# data:
+#   X-Frame-Options: "SAMEORIGIN"
+#   X-Content-Type-Options: "nosniff"
+#   X-XSS-Protection: "1; mode=block"
+#   Content-Security-Policy: "default-src 'self' https: data: blob: 'unsafe-inline'; connect-src 'self' ws: wss: https: wss://ecommerceapi.bunlong.site https://ecommerceapi.bunlong.site; script-src 'self' 'unsafe-inline' 'unsafe-eval'; img-src 'self' data: https: blob:; style-src 'self' 'unsafe-inline'; font-src 'self' data: https:;"
 
----
-apiVersion: v1
-kind: ConfigMap
-metadata:
-  name: proxy-headers
-  namespace: production
-data:
-  X-Forwarded-Proto: "https"
-  X-Forwarded-Port: "443"
-  X-Real-IP: "$remote_addr"
+# ---
+# apiVersion: v1
+# kind: ConfigMap
+# metadata:
+#   name: proxy-headers
+#   namespace: production
+# data:
+#   X-Forwarded-Proto: "https"
+#   X-Forwarded-Port: "443"
+#   X-Real-IP: "$remote_addr"
 
 ---
 apiVersion: networking.k8s.io/v1
@@ -99,20 +99,25 @@ metadata:
     # Use NGINX Ingress Controller
     kubernetes.io/ingress.class: "nginx"
     
+    # SSL and security
+    nginx.ingress.kubernetes.io/ssl-redirect: "false"  # Let Cloudflare handle HTTPS redirect
+    nginx.ingress.kubernetes.io/force-ssl-redirect: "false"  # Let Cloudflare handle HTTPS redirect
+
     # Cloudflare specific annotations
     nginx.ingress.kubernetes.io/proxy-body-size: "50m"
     nginx.ingress.kubernetes.io/proxy-read-timeout: "3600"
     nginx.ingress.kubernetes.io/proxy-send-timeout: "3600"
     nginx.ingress.kubernetes.io/proxy-connect-timeout: "600"
+    nginx.ingress.kubernetes.io/websocket-services: "vue-ecommerce-service"
 
-    # SSL and security
-    nginx.ingress.kubernetes.io/ssl-redirect: "false"  # Let Cloudflare handle HTTPS redirect
-    nginx.ingress.kubernetes.io/force-ssl-redirect: "false"  # Let Cloudflare handle HTTPS redirect
+    # Enable real IP forwarding
+    nginx.ingress.kubernetes.io/enable-cors: "true"
+    nginx.ingress.kubernetes.io/cors-allow-origin: "*"
 
     # Proxy headers for proper protocol detection
-    nginx.ingress.kubernetes.io/proxy-set-headers: "proxy-headers"
+    # nginx.ingress.kubernetes.io/proxy-set-headers: "proxy-headers"
     # Custom headers using the native annotation
-    nginx.ingress.kubernetes.io/custom-headers: "custom-headers"
+    # nginx.ingress.kubernetes.io/custom-headers: "custom-headers"
 
     # # Custom headers for proper protocol detection + CSP
     # nginx.ingress.kubernetes.io/configuration-snippet: |
