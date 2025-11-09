@@ -121,7 +121,7 @@ metadata:
     nginx.ingress.kubernetes.io/enable-real-ip: "true"
 
     # Proxy headers
-    nginx.ingress.kubernetes.io/proxy-set-headers: "production/proxy-headers"
+    nginx.ingress.kubernetes.io/proxy-set-headers: "production/vue-proxy-headers"
 
     # Proxy headers for proper protocol detection
     # nginx.ingress.kubernetes.io/proxy-set-headers: "proxy-headers"
@@ -165,3 +165,22 @@ spec:
             name: vue-ecommerce-service
             port:
               number: 80
+
+---
+# ConfigMap for Vue proxy headers with proper CSP
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: vue-proxy-headers
+  namespace: production
+data:
+  X-Forwarded-Proto: "https"
+  X-Forwarded-Port: "443"
+  X-Forwarded-For: "$proxy_add_x_forwarded_for"
+  X-Real-IP: "$remote_addr"
+  X-Scheme: "https"
+  Content-Security-Policy: "default-src 'self'; connect-src 'self' https://ecommerceapi.bunlong.site https://www.ecommerceapi.bunlong.site wss://ecommerceapi.bunlong.site wss://www.ecommerceapi.bunlong.site ws://localhost:* http://localhost:*; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https: blob:; font-src 'self' data: https:; frame-src 'self'; base-uri 'self'; form-action 'self'"
+  X-Frame-Options: "SAMEORIGIN"
+  X-Content-Type-Options: "nosniff"
+  X-XSS-Protection: "1; mode=block"
+  Referrer-Policy: "strict-origin-when-cross-origin"
