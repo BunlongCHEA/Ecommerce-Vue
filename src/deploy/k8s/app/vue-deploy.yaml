@@ -108,11 +108,20 @@ metadata:
     nginx.ingress.kubernetes.io/proxy-read-timeout: "3600"
     nginx.ingress.kubernetes.io/proxy-send-timeout: "3600"
     nginx.ingress.kubernetes.io/proxy-connect-timeout: "600"
-    nginx.ingress.kubernetes.io/websocket-services: "vue-ecommerce-service"
+    # nginx.ingress.kubernetes.io/websocket-services: "vue-ecommerce-service"
 
     # Enable real IP forwarding
     nginx.ingress.kubernetes.io/enable-cors: "true"
     nginx.ingress.kubernetes.io/cors-allow-origin: "*"
+    nginx.ingress.kubernetes.io/cors-allow-credentials: "true"
+
+
+    # Real IP forwarding from Cloudflare
+    nginx.ingress.kubernetes.io/use-forwarded-headers: "true"
+    nginx.ingress.kubernetes.io/enable-real-ip: "true"
+
+    # Proxy headers
+    nginx.ingress.kubernetes.io/proxy-set-headers: "production/proxy-headers"
 
     # Proxy headers for proper protocol detection
     # nginx.ingress.kubernetes.io/proxy-set-headers: "proxy-headers"
