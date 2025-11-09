@@ -38,18 +38,20 @@ class ChatService {
           console.log('Providing access token for SignalR connection')
           return accessToken || ''
         },
-        transport: HttpTransportType.WebSockets | HttpTransportType.ServerSentEvents | HttpTransportType.LongPolling,
+        transport: HttpTransportType.ServerSentEvents |
+                  //  HttpTransportType.WebSockets |
+                   HttpTransportType.LongPolling,
         skipNegotiation: false, // Allow negotiation (required for proper transport selection)
-        withCredentials: true,  // Required for CORS with credentials
-        headers: {
-          'User-Agent': 'SignalR-Client',
-          'Accept': 'application/json',
-          'Content-Type': 'application/json'
-        },
-        // Additional options for production environment
-        timeout: 30000, // 30 seconds timeout
-        serverTimeoutInMilliseconds: 60000, // 60 seconds server timeout
-        keepAliveIntervalInMilliseconds: 15000 // 15 seconds keep-alive
+        // withCredentials: true,  // Required for CORS with credentials
+        // headers: {
+        //   'User-Agent': 'SignalR-Client',
+        //   'Accept': 'application/json',
+        //   'Content-Type': 'application/json'
+        // },
+        // // Additional options for production environment
+        // timeout: 30000, // 30 seconds timeout
+        // serverTimeoutInMilliseconds: 60000, // 60 seconds server timeout
+        // keepAliveIntervalInMilliseconds: 15000 // 15 seconds keep-alive
       })
       .withAutomaticReconnect({
         nextRetryDelayInMilliseconds: retryContext => {
