@@ -17,8 +17,6 @@ spec:
       - name: vue-app
         image: registry.gitlab.com/bunlongchea/ecommerce-vue:latest # Update with your registry
         imagePullPolicy: Always # Always pull the latest image
-        args:
-          - --allow-snippet-annotations=true
         ports:
         - containerPort: 8080
         env:
@@ -68,28 +66,28 @@ spec:
       targetPort: 8080
   type: ClusterIP
 
-# ---
-# apiVersion: v1
-# kind: ConfigMap
-# metadata:
-#   name: custom-headers
-#   namespace: production
-# data:
-#   X-Frame-Options: "SAMEORIGIN"
-#   X-Content-Type-Options: "nosniff"
-#   X-XSS-Protection: "1; mode=block"
-#   Content-Security-Policy: "default-src 'self' https: data: blob: 'unsafe-inline'; connect-src 'self' ws: wss: https: wss://ecommerceapi.bunlong.site https://ecommerceapi.bunlong.site; script-src 'self' 'unsafe-inline' 'unsafe-eval'; img-src 'self' data: https: blob:; style-src 'self' 'unsafe-inline'; font-src 'self' data: https:;"
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: custom-headers
+  namespace: production
+data:
+  X-Frame-Options: "SAMEORIGIN"
+  X-Content-Type-Options: "nosniff"
+  X-XSS-Protection: "1; mode=block"
+  Content-Security-Policy: "default-src 'self' https: data: blob: 'unsafe-inline'; connect-src 'self' ws: wss: https: wss://ecommerceapi.bunlong.site https://ecommerceapi.bunlong.site; script-src 'self' 'unsafe-inline' 'unsafe-eval'; img-src 'self' data: https: blob:; style-src 'self' 'unsafe-inline'; font-src 'self' data: https:;"
 
-# ---
-# apiVersion: v1
-# kind: ConfigMap
-# metadata:
-#   name: proxy-headers
-#   namespace: production
-# data:
-#   X-Forwarded-Proto: "https"
-#   X-Forwarded-Port: "443"
-#   X-Real-IP: "$remote_addr"
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: proxy-headers
+  namespace: production
+data:
+  X-Forwarded-Proto: "https"
+  X-Forwarded-Port: "443"
+  X-Real-IP: "$remote_addr"
 
 ---
 apiVersion: networking.k8s.io/v1
@@ -111,22 +109,22 @@ metadata:
     nginx.ingress.kubernetes.io/ssl-redirect: "false"  # Let Cloudflare handle HTTPS redirect
     nginx.ingress.kubernetes.io/force-ssl-redirect: "false"  # Let Cloudflare handle HTTPS redirect
 
-    # # Proxy headers for proper protocol detection
-    # nginx.ingress.kubernetes.io/proxy-set-headers: "proxy-headers"
-    # # Custom headers using the native annotation
-    # nginx.ingress.kubernetes.io/custom-headers: "custom-headers"
+    # Proxy headers for proper protocol detection
+    nginx.ingress.kubernetes.io/proxy-set-headers: "proxy-headers"
+    # Custom headers using the native annotation
+    nginx.ingress.kubernetes.io/custom-headers: "custom-headers"
 
-    # Custom headers for proper protocol detection + CSP
-    nginx.ingress.kubernetes.io/configuration-snippet: |
-      more_set_headers "X-Forwarded-Proto $scheme";
-      more_set_headers "X-Forwarded-Port $server_port";
-      more_set_headers "X-Real-IP $remote_addr";
+    # # Custom headers for proper protocol detection + CSP
+    # nginx.ingress.kubernetes.io/configuration-snippet: |
+    #   more_set_headers "X-Forwarded-Proto $scheme";
+    #   more_set_headers "X-Forwarded-Port $server_port";
+    #   more_set_headers "X-Real-IP $remote_addr";
       
-      # Security headers including CSP for WebSocket support
-      more_set_headers "X-Frame-Options: SAMEORIGIN";
-      more_set_headers "X-Content-Type-Options: nosniff";
-      more_set_headers "X-XSS-Protection: 1; mode=block";
-      more_set_headers "Content-Security-Policy: default-src 'self' http: https: data: blob: 'unsafe-inline'; connect-src 'self' ws: wss: http: https: *.bunlong.site; script-src 'self' 'unsafe-inline' 'unsafe-eval'; img-src 'self' data: https: blob:; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; font-src 'self' data: https:";
+    #   # Security headers including CSP for WebSocket support
+    #   more_set_headers "X-Frame-Options: SAMEORIGIN";
+    #   more_set_headers "X-Content-Type-Options: nosniff";
+    #   more_set_headers "X-XSS-Protection: 1; mode=block";
+    #   more_set_headers "Content-Security-Policy: default-src 'self' http: https: data: blob: 'unsafe-inline'; connect-src 'self' ws: wss: http: https: *.bunlong.site; script-src 'self' 'unsafe-inline' 'unsafe-eval'; img-src 'self' data: https: blob:; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; font-src 'self' data: https:";
 spec:
   tls:
   - hosts:
