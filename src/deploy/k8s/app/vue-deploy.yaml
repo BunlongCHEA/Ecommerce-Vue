@@ -70,23 +70,23 @@ spec:
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: vue-ecommerce-configmap-custom-headers
+  name: custom-headers
   namespace: production
 data:
   X-Frame-Options: "SAMEORIGIN"
   X-Content-Type-Options: "nosniff"
   X-XSS-Protection: "1; mode=block"
-  Content-Security-Policy: "default-src 'self' http: https: data: blob: 'unsafe-inline'; connect-src 'self' ws: wss: http: https: *.bunlong.site; script-src 'self' 'unsafe-inline' 'unsafe-eval'; img-src 'self' data: https: blob:; style-src 'self' 'unsafe-inline'; font-src 'self' data: https:"
+  Content-Security-Policy: "default-src 'self' https: data: blob: 'unsafe-inline'; connect-src 'self' ws: wss: https: wss://ecommerceapi.bunlong.site https://ecommerceapi.bunlong.site; script-src 'self' 'unsafe-inline' 'unsafe-eval'; img-src 'self' data: https: blob:; style-src 'self' 'unsafe-inline'; font-src 'self' data: https:;"
 
 ---
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: vue-ecommerce-configmap-proxy-headers
+  name: proxy-headers
   namespace: production
 data:
-  X-Forwarded-Proto: "$scheme"
-  X-Forwarded-Port: "$server_port"
+  X-Forwarded-Proto: "https"
+  X-Forwarded-Port: "443"
   X-Real-IP: "$remote_addr"
 
 ---
@@ -107,14 +107,12 @@ metadata:
 
     # SSL and security
     nginx.ingress.kubernetes.io/ssl-redirect: "false"  # Let Cloudflare handle HTTPS redirect
-    nginx.ingress.kubernetes.io/force-ssl-redirect: "true"  # Let Cloudflare handle HTTPS redirect
+    nginx.ingress.kubernetes.io/force-ssl-redirect: "false"  # Let Cloudflare handle HTTPS redirect
 
     # Proxy headers for proper protocol detection
     nginx.ingress.kubernetes.io/proxy-set-headers: "proxy-headers"
     # Custom headers using the native annotation
     nginx.ingress.kubernetes.io/custom-headers: "custom-headers"
-    # Enable WebSocket support
-    nginx.ingress.kubernetes.io/websocket-services: "ws: wss: http: https: *.bunlong.site"
 
     # # Custom headers for proper protocol detection + CSP
     # nginx.ingress.kubernetes.io/configuration-snippet: |
