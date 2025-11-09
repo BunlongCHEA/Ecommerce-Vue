@@ -173,7 +173,7 @@
 
             <!-- <p v-else class="text-sm">{{ message.message }}</p> -->
             <!-- Text Message -->
-            <div v-if="message.message">
+            <div v-if="message.message && message.message.trim()">
               <!-- Check if message contains URL -->
               <div v-if="message.linkUrl" class="space-y-2">
                 <p class="text-sm">{{ getMessageWithoutUrl(message.message, message.linkUrl) }}</p>
@@ -196,6 +196,11 @@
               </div>
               <p v-else class="text-sm">{{ message.message }}</p>
             </div>
+
+            <!-- Show placeholder if no message and no image -->
+            <p v-if="!message.message?.trim() && !message.imageId" class="text-sm italic opacity-75">
+              (Empty message)
+            </p>
 
             <!-- Message Footer -->
             <div
@@ -364,11 +369,13 @@ const isTyping = ref(false)
 const messages = ref([])
 const newMessage = ref('')
 const unreadCount = ref(0)
+const unreadCountInterval = ref(null)
 const chatRoomId = ref(null)
 const messagesContainer = ref(null)
 const messageInput = ref(null)
 
 let typingTimeout = null
+
 
 // Image handling
 const imagePreview = ref(null)
@@ -412,6 +419,7 @@ const canSendMessage = computed(() => {
 // Methods
 const openChat = async () => {
   isOpen.value = true
+
   await initializeChat()
   await nextTick()
   if (messageInput.value) {
@@ -425,8 +433,13 @@ const minimizeChat = () => {
 
 const closeChat = () => {
   isOpen.value = false
+  showRoomsList.value = false
+  selectedRoom.value = null
+  messages.value = []
+  
   if (chatRoomId.value) {
     chatService.leaveRoom(chatRoomId.value)
+    chatRoomId.value = null
   }
 }
 
@@ -434,8 +447,14 @@ const initializeChat = async () => {
   try {
     if (!currentUserId.value) return
 
+    // Connect to SignalR if not already connected
+    if (!isConnected.value) {
+      await connectToSignalR()
+      setupEventListeners()
+    }
+
     // Connect to SignalR
-    await connectToSignalR()
+    // await connectToSignalR()
 
     console.log('Chat initialized for user:', currentUserRole.value)
 
@@ -450,9 +469,6 @@ const initializeChat = async () => {
       // Load chat history
       await loadChatHistory()
     }
-
-    // Set up event listeners
-    setupEventListeners()
 
   } catch (error) {
     console.error('Failed to initialize chat:', error)
@@ -475,6 +491,9 @@ const connectToSignalR = async () => {
   }
 }
 
+
+// Chat Room Management
+
 const createAdminSupportRoom = async () => {
   try {
     // Use the new admin support room endpoint
@@ -491,6 +510,9 @@ const loadAdminRooms = async () => {
     if (currentUserRole.value === 'Admin') {
       const rooms = await chatApiService.getAdminSupportRoom()
       adminRooms.value = rooms
+
+      // Calculate total unread count for admin
+      unreadCount.value = rooms.reduce((total, room) => total + (room.unreadCount || 0), 0)
     }
   } catch (error) {
     console.error('Failed to load admin rooms:', error)
@@ -499,8 +521,17 @@ const loadAdminRooms = async () => {
 
 const selectRoom = async (room) => {
   selectedRoom.value = room
+
+  // Leave previous room if exists
+  if (chatRoomId.value) {
+    await chatService.leaveRoom(chatRoomId.value)
+  }
+
   chatRoomId.value = room.id
   showRoomsList.value = false
+
+  // Clear messages for new room
+  messages.value = []
   
   // Load chat history for selected room
   await loadChatHistory()
@@ -509,21 +540,47 @@ const selectRoom = async (room) => {
   if (isConnected.value) {
     await chatService.joinRoom(chatRoomId.value)
   }
+
+  // Mark all messages as read immediately
+  await markMessagesAsRead()
+  
+  // Reload admin rooms to update unread counts
+  if (currentUserRole.value === 'Admin') {
+    await loadAdminRooms()
+  }
 }
 
 const toggleRoomsList = () => {
   showRoomsList.value = !showRoomsList.value
+  
+  if (showRoomsList.value) {
+    // Clear selected room and messages
+    selectedRoom.value = null
+    messages.value = []
+    
+    if (chatRoomId.value) {
+      chatService.leaveRoom(chatRoomId.value)
+      chatRoomId.value = null
+    }
+  }
 }
+
+
+// Messsage Events and Typing Indicators
 
 // Message Handling
 const loadChatHistory = async () => {
   try {
     if (!chatRoomId.value) return
     
+    console.log('Loading chat history for room:', chatRoomId.value)
+    
     const history = await chatApiService.getChatHistory(chatRoomId.value)
     
     // Process messages with images
     messages.value = await chatService.processMessages(history)
+    
+    console.log('Processed messages:', messages.value.length)
     
     // Count unread messages
     unreadCount.value = history.filter(m => 
@@ -542,35 +599,80 @@ const loadChatHistory = async () => {
   }
 }
 
+// Fetch initial unread count on mount
+const fetchInitialUnreadCount = async () => {
+  try {
+    if (!currentUserId.value || currentUserRole.value === 'Admin') return
+    
+    // Get or create the admin support room first
+    const response = await chatApiService.createAdminSupportRoom()
+    const roomId = response.roomId
+    
+    // Fetch chat history for this room
+    const history = await chatApiService.getChatHistory(roomId)
+    
+    // Count unread messages
+    unreadCount.value = history.filter(m => 
+      m.receiverId === currentUserId.value && !m.isRead
+    ).length
+  } catch (error) {
+    console.error('Failed to fetch initial unread count:', error)
+  }
+}
+
 const sendMessage = async () => {
   if (!canSendMessage.value) return
   
+  // Prevent double-click
+  if (isLoading.value) return
+  
+  const messageText = newMessage.value.trim()
+  if (!messageText) return
+  
   isLoading.value = true
+  const messageCopy = messageText // Keep a copy
+  newMessage.value = '' // Clear immediately
+  
   try {
-    await chatService.sendMessage(chatRoomId.value, newMessage.value)
-    newMessage.value = ''
+    await chatService.sendMessage(chatRoomId.value, messageCopy)
+    console.log('Message sent successfully')
     await handleStopTyping()
   } catch (error) {
     console.error('Failed to send message:', error)
+    // Restore message on error
+    newMessage.value = messageCopy
   } finally {
     isLoading.value = false
   }
 }
 
+
+// Handle image message sending
+
 const sendImageMessage = async () => {
   if (!imagePreview.value || !chatRoomId.value) return
 
+  // Prevent double-click
+  if (isUploadingImage.value) return
+
   isUploadingImage.value = true
+  const messageText = newMessage.value || ''
+  const imageFile = imagePreview.value.file
+
+  // Clear immediately to prevent re-sending
+  newMessage.value = ''
+  removeImagePreview()
+
   try {
     await chatService.sendMessageWithImageFile(
       chatRoomId.value,
-      newMessage.value || '',
-      imagePreview.value.file
+      messageText,
+      imageFile
     )
     
-    // Clean up
-    newMessage.value = ''
-    removeImagePreview()
+    // // Clean up
+    // newMessage.value = ''
+    // removeImagePreview()
   } catch (error) {
     console.error('Failed to send image message:', error)
     alert('Failed to send image: ' + error.message)
@@ -671,6 +773,9 @@ const handleImageError = (message) => {
   // Could implement retry logic or placeholder image here
 }
 
+
+// Handle URLs in messages
+
 // URL formatting methods
 const formatUrl = (url) => {
   if (!url) return ''
@@ -705,26 +810,48 @@ const setupEventListeners = () => {
   chatService.onUserTyping(handleUserTyping)
   chatService.onUserStoppedTyping(handleUserStoppedTyping)
   chatService.onError(handleError)
+
+  // Listen for messages even when chat is closed to update badge
+  chatService.onReceiveMessage((message) => {
+    if (!isOpen.value && message.receiverId === currentUserId.value) {
+      unreadCount.value++
+    }
+  })
 }
 
+
+// Event Handlers
+
 const handleReceiveMessage = async (message) => {
-  // Process message with image if present
-  const processedMessage = await chatService.processReceivedMessage(message)
-  messages.value.push(processedMessage)
-  
-  if (message.receiverId === currentUserId.value) {
-    if (isOpen.value) {
-      // Mark as read immediately if chat is open
+
+  // If chat is open and message is for current room, display it
+  if (isOpen.value && message.chatRoomId === chatRoomId.value) {
+    // Process message with image if present
+    const processedMessage = await chatService.processReceivedMessage(message)
+    messages.value.push(processedMessage)
+    
+    console.log('Added message to display. Total messages:', messages.value.length)
+    
+    // Mark as read if it's for current user and chat is open
+    if (message.receiverId === currentUserId.value) {
       setTimeout(() => {
         chatApiService.markMessageAsRead(message.id)
       }, 1000)
-    } else {
-      // Increment unread count if chat is closed
+    }
+    
+    scrollToBottom()
+  } else {
+    // Chat is closed or message is for different room
+    if (message.receiverId === currentUserId.value) {
       unreadCount.value++
+      console.log('Incremented unread count:', unreadCount.value)
     }
   }
   
-  scrollToBottom()
+  // Update admin rooms list if admin
+  if (currentUserRole.value === 'Admin') {
+    await loadAdminRooms()
+  }
 }
 
 const handleMessageRead = (messageId) => {
@@ -791,6 +918,8 @@ const markMessagesAsRead = async () => {
   unreadCount.value = 0
 }
 
+// Utility functions
+
 const scrollToBottom = () => {
   nextTick(() => {
     if (messagesContainer.value) {
@@ -815,6 +944,99 @@ const formatTime = (timestamp) => {
   }
 }
 
+
+// Unread count polling
+
+const startUnreadCountPolling = () => {
+  // Poll every 30 seconds when chat is closed
+  unreadCountInterval.value = setInterval(async () => {
+    if (!isOpen.value && shouldShowChat.value) {
+      if (currentUserRole.value === 'Admin') {
+        await loadAdminRooms()
+      } else {
+        await fetchInitialUnreadCount()
+      }
+    }
+  }, 15000) // 30 seconds
+}
+
+const stopUnreadCountPolling = () => {
+  if (unreadCountInterval.value) {
+    clearInterval(unreadCountInterval.value)
+    unreadCountInterval.value = null
+  }
+}
+
+
+// Real time connection management
+
+// Add this computed property to check if SignalR should connect
+const shouldConnectSignalR = computed(() => {
+  return shouldShowChat.value && currentUserId.value && isAuthenticated.value
+})
+
+// Modify onMounted to establish SignalR connection early
+onMounted(async () => {
+  await fetchUserId()
+  
+  // Connect to SignalR immediately if authenticated
+  if (shouldConnectSignalR.value) {
+    await connectToSignalR()
+    
+    // Set up listeners immediately for real-time updates
+    setupEventListeners()
+    
+    // Fetch initial data based on role
+    if (currentUserRole.value === 'Admin') {
+      await loadAdminRooms()
+    } else {
+      await fetchInitialUnreadCount()
+    }
+    
+    startUnreadCountPolling()
+  }
+  
+  // Global paste event listener
+  document.addEventListener('paste', (event) => {
+    if (isOpen.value && chatRoomId.value) {
+      handlePaste(event)
+    }
+  })
+})
+
+// // Add this new method to set up global listeners (before setupEventListeners)
+// const setupGlobalEventListeners = () => {
+//   // Listen for new messages to update unread count
+//   chatService.onReceiveMessage(handleGlobalReceiveMessage)
+  
+//   // Listen for message read events
+//   chatService.onMessageRead(handleGlobalMessageRead)
+// }
+
+// // New handler for global message reception (updates unread count)
+// const handleGlobalReceiveMessage = async (message) => {
+//   console.log('Global message received:', message)
+  
+//   if (currentUserRole.value === 'Admin') {
+//     // Update admin rooms list
+//     await loadAdminRooms()
+//   } else {
+//     // Update user unread count if chat is closed
+//     if (!isOpen.value && message.receiverId === currentUserId.value) {
+//       unreadCount.value++
+//     }
+//   }
+// }
+
+// // New handler for global message read events
+// const handleGlobalMessageRead = (data) => {
+//   if (currentUserRole.value === 'Admin') {
+//     // Refresh admin rooms to update unread counts
+//     loadAdminRooms()
+//   }
+// }
+
+
 // Watchers
 watch(() => isOpen.value, async (newValue) => {
   if (newValue && messages.value.length > 0) {
@@ -822,9 +1044,55 @@ watch(() => isOpen.value, async (newValue) => {
   }
 })
 
-watch(() => shouldShowChat.value, (newValue) => {
+watch(() => shouldShowChat.value, async (newValue) => {
   if (!newValue) {
     closeChat()
+  } else if (newValue && !isConnected.value) {
+    // Show chat and not connected yet
+    await connectToSignalR()
+    setupEventListeners()
+    
+    if (currentUserRole.value === 'Admin') {
+      await loadAdminRooms()
+    } else {
+      await fetchInitialUnreadCount()
+    }
+  }
+})
+
+// Fetch initial unread count when authenticated or authentication state changes
+watch(() => isAuthenticated.value, async (newValue, oldValue) => {
+  if (newValue && !oldValue && currentUserId.value) {
+    // User just logged in
+    await connectToSignalR()
+    setupEventListeners()
+    
+    if (currentUserRole.value === 'Admin') {
+      await loadAdminRooms()
+    } else {
+      await fetchInitialUnreadCount()
+    }
+    
+    startUnreadCountPolling()
+  }
+})
+
+// watcher for userId changes
+watch(() => currentUserId.value, async (newValue, oldValue) => {
+  if (newValue && newValue !== oldValue) {
+    // UserId changed, reconnect
+    if (isConnected.value) {
+      await chatService.disconnect()
+    }
+    
+    await connectToSignalR()
+    setupEventListeners()
+    
+    if (currentUserRole.value === 'Admin') {
+      await loadAdminRooms()
+    } else {
+      await fetchInitialUnreadCount()
+    }
   }
 })
 
@@ -846,7 +1114,17 @@ onUnmounted(async () => {
 })
 
 // Global event listeners for paste
-onMounted(() => {
+onMounted(async () => {
+  // Fetch userId first
+  await fetchUserId()
+
+  // Fetch initial unread count before chat is opened
+  if (shouldShowChat.value && currentUserRole.value !== 'Admin') {
+    await fetchInitialUnreadCount()
+    startUnreadCountPolling()
+  }
+
+  // Global paste event listener
   document.addEventListener('paste', (event) => {
     if (isOpen.value && chatRoomId.value) {
       handlePaste(event)
@@ -854,7 +1132,19 @@ onMounted(() => {
   })
 })
 
-onUnmounted(() => {
+onUnmounted(async () => {
+  stopUnreadCountPolling()
+  
+  if (chatRoomId.value) {
+    await chatService.leaveRoom(chatRoomId.value)
+  }
+  await chatService.disconnect()
+  
+  if (typingTimeout) {
+    clearTimeout(typingTimeout)
+  }
+
+  removeImagePreview()
   document.removeEventListener('paste', handlePaste)
 })
 </script>
