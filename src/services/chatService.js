@@ -10,7 +10,10 @@ class ChatService {
       onMessageRead: [],
       onUserTyping: [],
       onUserStoppedTyping: [],
-      onError: []
+      onError: [],
+
+      onUnreadCountUpdate: [],
+      onAdminRoomsUpdate: []
     }
   }
 
@@ -23,6 +26,9 @@ class ChatService {
     const signalrBaseUrl = baseUrl || 
                           import.meta.env.VITE_SIGNALR_BASE_URL || 
                           'http://localhost:5169'
+
+    //  const signalrBaseUrl = baseUrl ||
+    //                       'http://localhost:5169'
 
     // Determine the correct base URL based on environment
     // const hubUrl = signalrBaseUrl.includes('localhost') 
@@ -128,6 +134,16 @@ class ChatService {
       this.callbacks.onError.forEach(callback => callback(error))
     })
 
+    this.connection.on('UnreadCountUpdate', (count) => {
+      console.log('Unread count updated:', count)
+      this.callbacks.onUnreadCountUpdate.forEach(callback => callback(count))
+    })
+
+    this.connection.on('AdminRoomsUpdate', (rooms) => {
+      console.log('Admin rooms updated:', rooms)
+      this.callbacks.onAdminRoomsUpdate.forEach(callback => callback(rooms))
+    })
+
     try {
       console.log('Starting SignalR connection...')
       await this.connection.start()
@@ -231,6 +247,18 @@ class ChatService {
     }
   }
 
+  async subscribeToUnreadCount() {
+    if (this.isConnected && this.connection) {
+      await this.connection.invoke('SubscribeToUnreadCount')
+    }
+  }
+
+  async getAdminRoomsUpdate() {
+    if (this.isConnected && this.connection) {
+      await this.connection.invoke('GetAdminRoomsUpdate')
+    }
+  }
+
   // Event subscription methods
   onReceiveMessage(callback) {
     this.callbacks.onReceiveMessage.push(callback)
@@ -250,6 +278,14 @@ class ChatService {
 
   onError(callback) {
     this.callbacks.onError.push(callback)
+  }
+
+  onUnreadCountUpdate(callback) {
+    this.callbacks.onUnreadCountUpdate.push(callback)
+  }
+
+  onAdminRoomsUpdate(callback) {
+    this.callbacks.onAdminRoomsUpdate.push(callback)
   }
 
   // Helper methods for image handling
@@ -323,7 +359,10 @@ class ChatService {
         onMessageRead: [],
         onUserTyping: [],
         onUserStoppedTyping: [],
-        onError: []
+        onError: [],
+
+        onUnreadCountUpdate: [],
+        onAdminRoomsUpdate: []
       }
     }
   }

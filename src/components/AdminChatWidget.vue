@@ -375,6 +375,9 @@ const messagesContainer = ref(null)
 const messageInput = ref(null)
 
 let typingTimeout = null
+const TYPING_INDICATOR_DELAY = 3000 // milliseconds
+const SIGNALR_RECONNECT_INTERVAL = 10000 // milliseconds
+const RESTART_UNREAD_COUNT_INTERVAL = 15000 // milliseconds
 
 
 // Image handling
@@ -388,6 +391,14 @@ const fileInput = ref(null)
 const adminRooms = ref([])
 const selectedRoom = ref(null)
 const showRoomsList = ref(false)
+
+// Helper: find index of message by id in current visible array
+const findMessageIndex = (id) => {
+  return messages.value.findIndex(m => m.id === id)
+}
+
+// Attach the receive listener only once
+const listenersAttached = ref(false)
 
 // Get auth data from localStorage (matching your auth system)
 const { userId, role, fetchUserId } = useFetchUserId()
@@ -420,6 +431,8 @@ const canSendMessage = computed(() => {
 const openChat = async () => {
   isOpen.value = true
 
+  // When opening, clear visible messages (they will be reloaded by initializeChat)
+  messages.value = []
   await initializeChat()
   await nextTick()
   if (messageInput.value) {
@@ -487,7 +500,7 @@ const connectToSignalR = async () => {
       if (!isConnected.value) {
         connectToSignalR()
       }
-    }, 3000)
+    }, SIGNALR_RECONNECT_INTERVAL)
   }
 }
 
@@ -511,11 +524,27 @@ const loadAdminRooms = async () => {
       const rooms = await chatApiService.getAdminSupportRoom()
       adminRooms.value = rooms
 
+      // Request update via SignalR instead of API
+      // await chatService.getAdminRoomsUpdate()
+
       // Calculate total unread count for admin
       unreadCount.value = rooms.reduce((total, room) => total + (room.unreadCount || 0), 0)
+    } else {
+      console.error('Fallback load getAdminSupportRoom:', error)
+      // Fallback to API if SignalR not connected
+      // const rooms = await chatApiService.getAdminSupportRoom()
+      // handleAdminRoomsUpdate(rooms)
     }
   } catch (error) {
     console.error('Failed to load admin rooms:', error)
+
+    // // Fallback to API on error
+    // try {
+    //   const rooms = await chatApiService.getAdminSupportRoom()
+    //   handleAdminRoomsUpdate(rooms)
+    // } catch (apiError) {
+    //   console.error('API fallback also failed:', apiError)
+    // }
   }
 }
 
@@ -574,14 +603,23 @@ const loadChatHistory = async () => {
     if (!chatRoomId.value) return
     
     console.log('Loading chat history for room:', chatRoomId.value)
+
+     // Clear current visible messages for this room first
+    messages.value = []
     
     const history = await chatApiService.getChatHistory(chatRoomId.value)
     
     // Process messages with images
-    messages.value = await chatService.processMessages(history)
+    // messages.value = await chatService.processMessages(history)
+    // console.log('Processed messages:', messages.value.length)
     
-    console.log('Processed messages:', messages.value.length)
-    
+    // Process messages with images
+    // chatService.processMessages should return an array of full message objects
+    const processed = await chatService.processMessages(history)
+
+    // Assign the processed messages directly (preserves order from server)
+    messages.value = processed
+
     // Count unread messages
     unreadCount.value = history.filter(m => 
       m.receiverId === currentUserId.value && !m.isRead
@@ -603,6 +641,9 @@ const loadChatHistory = async () => {
 const fetchInitialUnreadCount = async () => {
   try {
     if (!currentUserId.value || currentUserRole.value === 'Admin') return
+
+    // Subscribe to real-time unread count via SignalR
+    // await chatService.subscribeToUnreadCount()
     
     // Get or create the admin support room first
     const response = await chatApiService.createAdminSupportRoom()
@@ -627,7 +668,11 @@ const sendMessage = async () => {
   if (isLoading.value) return
   
   const messageText = newMessage.value.trim()
-  if (!messageText) return
+  // if (!messageText) return
+  if (!messageText) {
+    // If there is an image but empty text, allow sendImageMessage to handle
+    if (!imagePreview.value) return
+  }
   
   isLoading.value = true
   const messageCopy = messageText // Keep a copy
@@ -805,53 +850,158 @@ const formatFileSize = (bytes) => {
 
 
 const setupEventListeners = () => {
+  if (listenersAttached.value) return
+  listenersAttached.value = true
+
   chatService.onReceiveMessage(handleReceiveMessage)
   chatService.onMessageRead(handleMessageRead)
   chatService.onUserTyping(handleUserTyping)
   chatService.onUserStoppedTyping(handleUserStoppedTyping)
   chatService.onError(handleError)
 
-  // Listen for messages even when chat is closed to update badge
-  chatService.onReceiveMessage((message) => {
-    if (!isOpen.value && message.receiverId === currentUserId.value) {
-      unreadCount.value++
-    }
-  })
+  // Real-time unread count and admin rooms updates
+  chatService.onUnreadCountUpdate(handleUnreadCountUpdate)
+  chatService.onAdminRoomsUpdate(handleAdminRoomsUpdate)
+
+  // Subscribe immediately after setting up listeners
+  if (currentUserRole.value !== 'Admin') {
+    chatService.subscribeToUnreadCount()
+  }
+
+  // // Listen for messages even when chat is closed to update badge
+  // chatService.onReceiveMessage((message) => {
+  //   if (!isOpen.value && message.receiverId === currentUserId.value) {
+  //     unreadCount.value++
+  //   }
+  // })
 }
 
 
 // Event Handlers
 
-const handleReceiveMessage = async (message) => {
+// const handleReceiveMessage = async (message) => {
 
-  // If chat is open and message is for current room, display it
-  if (isOpen.value && message.chatRoomId === chatRoomId.value) {
-    // Process message with image if present
-    const processedMessage = await chatService.processReceivedMessage(message)
-    messages.value.push(processedMessage)
+//   // If chat is open and message is for current room, display it
+//   if (isOpen.value && message.chatRoomId === chatRoomId.value) {
+//     // Process message with image if present
+//     const processedMessage = await chatService.processReceivedMessage(message)
+//     messages.value.push(processedMessage)
     
-    console.log('Added message to display. Total messages:', messages.value.length)
+//     console.log('Added message to display. Total messages:', messages.value.length)
     
-    // Mark as read if it's for current user and chat is open
-    if (message.receiverId === currentUserId.value) {
-      setTimeout(() => {
-        chatApiService.markMessageAsRead(message.id)
-      }, 1000)
-    }
+//     // Mark as read if it's for current user and chat is open
+//     if (message.receiverId === currentUserId.value) {
+//       setTimeout(() => {
+//         chatApiService.markMessageAsRead(message.id)
+//       }, 1000)
+//     }
     
-    scrollToBottom()
-  } else {
-    // Chat is closed or message is for different room
-    if (message.receiverId === currentUserId.value) {
-      unreadCount.value++
-      console.log('Incremented unread count:', unreadCount.value)
-    }
-  }
+//     scrollToBottom()
+//   } else {
+//     // Chat is closed or message is for different room
+//     if (message.receiverId === currentUserId.value) {
+//       unreadCount.value++
+//       console.log('Incremented unread count:', unreadCount.value)
+//     }
+//   }
   
-  // Update admin rooms list if admin
-  if (currentUserRole.value === 'Admin') {
-    await loadAdminRooms()
+//   // Update admin rooms list if admin
+//   if (currentUserRole.value === 'Admin') {
+//     await loadAdminRooms()
+//   }
+// }
+
+//  - No Set-based global dedupe.
+//  - If message already in messages.value, update it (status/image/etc.)
+//  - If not present and message belongs to current open room, push it.
+//  - If chat closed and message is for current user, increment unreadCount.
+const handleReceiveMessage = async (message) => {
+  try {
+    // Defensive logs (remove later if verbose)
+    // console.debug('handleReceiveMessage', message)
+
+    // If message exists in visible list -> update it (e.g., isRead, imageUrl, message text)
+    const idx = findMessageIndex(message.id)
+    if (idx !== -1) {
+      // Update existing message object in-place to preserve reactivity
+      const existing = messages.value[idx]
+      // Merge known fields from incoming message
+      existing.isRead = message.isRead ?? existing.isRead
+      existing.timestamp = message.timestamp ?? existing.timestamp
+      existing.linkUrl = message.linkUrl ?? existing.linkUrl
+      existing.hasImage = message.hasImage ?? existing.hasImage
+      existing.imageId = message.imageId ?? existing.imageId
+      // ensure message text is not lost – prefer incoming if not null/undefined (even if empty string)
+      existing.message = message.message !== undefined ? message.message : existing.message
+
+      // If message has imageId but no imageUrl yet, let chatService enrich it
+      if (existing.imageId && !existing.imageUrl) {
+        const enriched = await chatService.processReceivedMessage(message)
+        // merge any additional fields (imageUrl, etc.)
+        Object.assign(existing, enriched)
+      }
+      // ensure scroll if chat open and message is in current room
+      if (isOpen.value && message.chatRoomId === chatRoomId.value) {
+        scrollToBottom()
+      }
+      return
+    }
+
+    // Message not currently visible
+    const isForCurrentRoom = isOpen.value && message.chatRoomId === chatRoomId.value
+
+    if (isForCurrentRoom) {
+      // Process (resolve image URLs etc.) and display
+      const processedMessage = await chatService.processReceivedMessage(message)
+
+      // If the server sometimes sends null/undefined for message, ensure property exists
+      if (processedMessage.message === undefined) {
+        processedMessage.message = ''
+      }
+
+      messages.value.push(processedMessage)
+
+      // If this is a message the current user received and the chat is open, mark read
+      if (message.receiverId === currentUserId.value) {
+        // small delay to allow UI to settle
+        setTimeout(() => {
+          chatApiService.markMessageAsRead(message.id).catch(err => {
+            console.error('markMessageAsRead error', err)
+          })
+        }, 800)
+      }
+
+      scrollToBottom()
+    } else {
+      // Chat closed or different room -> increment unread count only if message is for current user
+      if (message.receiverId === currentUserId.value) {
+        unreadCount.value = (unreadCount.value || 0) + 1
+      }
+
+      // If admin, refresh rooms (so admin sees updated unread counts)
+      if (currentUserRole.value === 'Admin') {
+        // don't await to avoid blocking signal handling, but catch errors
+        loadAdminRooms().catch(err => console.error('loadAdminRooms error', err))
+      }
+    }
+  } catch (err) {
+    console.error('handleReceiveMessage failed', err)
   }
+}
+
+// Add handler for unread count updates
+const handleUnreadCountUpdate = (count) => {
+  console.log('Unread count updated from SignalR:', count)
+  unreadCount.value = count
+}
+
+// Add handler for admin rooms updates
+const handleAdminRoomsUpdate = (rooms) => {
+  console.log('Admin rooms updated from SignalR:', rooms)
+  adminRooms.value = rooms
+  
+  // Calculate total unread count for admin
+  unreadCount.value = rooms.reduce((total, room) => total + (room.unreadCount || 0), 0)
 }
 
 const handleMessageRead = (messageId) => {
@@ -866,7 +1016,7 @@ const handleUserTyping = (userId) => {
     isTyping.value = true
     setTimeout(() => {
       isTyping.value = false
-    }, 3000)
+    }, TYPING_INDICATOR_DELAY)
   }
 }
 
@@ -891,7 +1041,7 @@ const handleTyping = async () => {
   
   typingTimeout = setTimeout(async () => {
     await handleStopTyping()
-  }, 2000)
+  }, TYPING_INDICATOR_DELAY)
 }
 
 const handleStopTyping = async () => {
@@ -948,7 +1098,7 @@ const formatTime = (timestamp) => {
 // Unread count polling
 
 const startUnreadCountPolling = () => {
-  // Poll every 30 seconds when chat is closed
+  // Poll every ?? seconds when chat is closed
   unreadCountInterval.value = setInterval(async () => {
     if (!isOpen.value && shouldShowChat.value) {
       if (currentUserRole.value === 'Admin') {
@@ -957,8 +1107,30 @@ const startUnreadCountPolling = () => {
         await fetchInitialUnreadCount()
       }
     }
-  }, 15000) // 30 seconds
+  }, RESTART_UNREAD_COUNT_INTERVAL)
 }
+
+// const startUnreadCountPolling = () => {
+//   // Reduced polling frequency as SignalR handles real-time updates
+//   unreadCountInterval.value = setInterval(async () => {
+//     // Only poll as fallback if connection is lost
+//     if (!isConnected.value && shouldShowChat.value) {
+//       console.log('SignalR disconnected, using API fallback')
+//       if (currentUserRole.value === 'Admin') {
+//         const rooms = await chatApiService.getAdminSupportRoom()
+//         handleAdminRoomsUpdate(rooms)
+//       } else {
+//         // Fallback to API for unread count
+//         const response = await chatApiService.createAdminSupportRoom()
+//         const history = await chatApiService.getChatHistory(response.roomId)
+//         const count = history.filter(m => 
+//           m.receiverId === currentUserId.value && !m.isRead
+//         ).length
+//         unreadCount.value = count
+//       }
+//     }
+//   }, 5000) // Increased to 60 seconds since SignalR handles real-time
+// }
 
 const stopUnreadCountPolling = () => {
   if (unreadCountInterval.value) {
@@ -989,11 +1161,13 @@ onMounted(async () => {
     // Fetch initial data based on role
     if (currentUserRole.value === 'Admin') {
       await loadAdminRooms()
+      // await chatService.getAdminRoomsUpdate()
     } else {
-      await fetchInitialUnreadCount()
+      // await fetchInitialUnreadCount()
+      await chatService.subscribeToUnreadCount()
     }
     
-    startUnreadCountPolling()
+    // startUnreadCountPolling()
   }
   
   // Global paste event listener
@@ -1099,6 +1273,7 @@ watch(() => currentUserId.value, async (newValue, oldValue) => {
 // Lifecycle
 onUnmounted(async () => {
   fetchUserId();
+  // stopUnreadCountPolling();
 
   if (chatRoomId.value) {
     await chatService.leaveRoom(chatRoomId.value)
@@ -1111,6 +1286,7 @@ onUnmounted(async () => {
 
   // Cleanup image preview
   removeImagePreview()
+  document.removeEventListener('paste', handlePaste)
 })
 
 // Global event listeners for paste
