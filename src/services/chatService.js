@@ -254,9 +254,67 @@ class ChatService {
   }
 
   async getAdminRoomsUpdate() {
-    if (this.isConnected && this.connection) {
-      await this.connection.invoke('GetAdminRoomsUpdate')
-    }
+    // if (this.isConnected && this.connection) {
+    //   await this.connection.invoke('GetAdminRoomsUpdate')
+    // }
+    
+    return new Promise((resolve, reject) => {
+      if (!this.isConnected || !this.connection) {
+        reject(new Error('SignalR connection not established'))
+        return
+      }
+
+      // Create timeout
+      const timeout = setTimeout(() => {
+        console.error('getAdminRoomsUpdate: Request timeout')
+        this.connection?.off('AdminRoomsUpdate', responseHandler)
+        this.connection?.off('Error', errorHandler)
+        reject(new Error('Request timeout - no response from server'))
+      }, 10000) // 10 second timeout
+
+      // Temporary one-time handlers for this specific request
+      const responseHandler = (rooms) => {
+        console.log('getAdminRoomsUpdate: Response received:', rooms)
+        console.log('getAdminRoomsUpdate: Type check - IsArray:', Array.isArray(rooms))
+        clearTimeout(timeout)
+        
+        // Remove these temporary handlers
+        this.connection?.off('AdminRoomsUpdate', responseHandler)
+        this.connection?.off('Error', errorHandler)
+        
+        resolve(rooms)
+      }
+
+      const errorHandler = (error) => {
+        console.error('getAdminRoomsUpdate: Error received:', error)
+        clearTimeout(timeout)
+        
+        // Remove these temporary handlers
+        this.connection?.off('AdminRoomsUpdate', responseHandler)
+        this.connection?.off('Error', errorHandler)
+        
+        reject(new Error(error))
+      }
+
+      // Register temporary listeners BEFORE invoking
+      console.log('getAdminRoomsUpdate: Registering temporary listeners')
+      this.connection.on('AdminRoomsUpdate', responseHandler)
+      this.connection.on('Error', errorHandler)
+
+      // Invoke the hub method
+      console.log('getAdminRoomsUpdate: Invoking hub method')
+      this.connection.invoke('GetAdminRoomsUpdate')
+        .then(() => {
+          console.log('getAdminRoomsUpdate: Hub method invoked successfully, waiting for response...')
+        })
+        .catch((err) => {
+          console.error('getAdminRoomsUpdate: Hub invoke failed:', err)
+          clearTimeout(timeout)
+          this.connection?.off('AdminRoomsUpdate', responseHandler)
+          this.connection?.off('Error', errorHandler)
+          reject(err)
+        })
+    })
   }
 
   // Event subscription methods

@@ -377,7 +377,7 @@ const messageInput = ref(null)
 let typingTimeout = null
 const TYPING_INDICATOR_DELAY = 3000 // milliseconds
 const SIGNALR_RECONNECT_INTERVAL = 10000 // milliseconds
-const RESTART_UNREAD_COUNT_INTERVAL = 15000 // milliseconds
+const RESTART_UNREAD_COUNT_INTERVAL = 5000 // milliseconds
 
 
 // Image handling
@@ -521,15 +521,38 @@ const createAdminSupportRoom = async () => {
 const loadAdminRooms = async () => {
   try {
     if (currentUserRole.value === 'Admin') {
-      const rooms = await chatApiService.getAdminSupportRoom()
-      adminRooms.value = rooms
-
       // Request update via SignalR instead of API
-      // const rooms = await chatService.getAdminRoomsUpdate()
-      // adminRooms.value = rooms
+      const rooms = await chatService.getAdminRoomsUpdate()
+      console.log('Loaded admin rooms via SignalR:', rooms)
 
-      // Calculate total unread count for admin
+      // Validate that rooms is an array
+      if (!rooms) {
+        console.error('Rooms is null or undefined')
+        adminRooms.value = []
+        unreadCount.value = 0
+        return
+      }
+
+      if (!Array.isArray(rooms)) {
+        console.error('Rooms is not an array:', typeof rooms, rooms)
+        adminRooms.value = []
+        unreadCount.value = 0
+        return
+      }
+
+      // Data is valid
+      adminRooms.value = rooms
       unreadCount.value = rooms.reduce((total, room) => total + (room.unreadCount || 0), 0)
+      // console.log('Successfully loaded admin rooms. Total unread:', unreadCount.value)
+      
+
+      // // Request rooms update via API
+      // const rooms = await chatApiService.getAdminSupportRoom()
+      // adminRooms.value = rooms
+      // console.log('Loaded admin rooms via API:', rooms)
+
+      // // Calculate total unread count for admin
+      // unreadCount.value = rooms.reduce((total, room) => total + (room.unreadCount || 0), 0)
     } else {
       console.error('Fallback load getAdminSupportRoom:', error)
       // Fallback to API if SignalR not connected
@@ -643,13 +666,23 @@ const fetchInitialUnreadCount = async () => {
   try {
     if (!currentUserId.value || currentUserRole.value === 'Admin') return
 
+    const roomId = response.roomId
+
+    // // If roomId is not provided in the subscription response, try to get/create it
+    // if (!roomId) {
+    //   const roomResponse = await chatApiService.createAdminSupportRoom()
+    //   roomId = roomResponse.roomId
+    //   console.log('Created/fetched admin support room for unread count:', roomId)
+    // }
+
     // Subscribe to real-time unread count via SignalR
     const response = await chatService.subscribeToUnreadCount()
-    console.log('Subscribed to unread count updates, initial count:', response.unreadCount)
     
     // Get or create the admin support room first
     // const response = await chatApiService.createAdminSupportRoom()
-    const roomId = response.roomId
+    // const roomId = response.roomId
+
+    console.log('Subscribed to unread count updates, initial count:', response.unreadCount)
     
     // Fetch chat history for this room
     const history = await chatApiService.getChatHistory(roomId)
