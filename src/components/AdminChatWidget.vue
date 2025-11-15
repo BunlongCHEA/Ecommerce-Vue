@@ -525,7 +525,8 @@ const loadAdminRooms = async () => {
       adminRooms.value = rooms
 
       // Request update via SignalR instead of API
-      // await chatService.getAdminRoomsUpdate()
+      // const rooms = await chatService.getAdminRoomsUpdate()
+      // adminRooms.value = rooms
 
       // Calculate total unread count for admin
       unreadCount.value = rooms.reduce((total, room) => total + (room.unreadCount || 0), 0)
@@ -643,10 +644,11 @@ const fetchInitialUnreadCount = async () => {
     if (!currentUserId.value || currentUserRole.value === 'Admin') return
 
     // Subscribe to real-time unread count via SignalR
-    // await chatService.subscribeToUnreadCount()
+    const response = await chatService.subscribeToUnreadCount()
+    console.log('Subscribed to unread count updates, initial count:', response.unreadCount)
     
     // Get or create the admin support room first
-    const response = await chatApiService.createAdminSupportRoom()
+    // const response = await chatApiService.createAdminSupportRoom()
     const roomId = response.roomId
     
     // Fetch chat history for this room
@@ -1163,8 +1165,8 @@ onMounted(async () => {
       await loadAdminRooms()
       // await chatService.getAdminRoomsUpdate()
     } else {
-      // await fetchInitialUnreadCount()
-      await chatService.subscribeToUnreadCount()
+      await fetchInitialUnreadCount()
+      // await chatService.subscribeToUnreadCount()
     }
     
     // startUnreadCountPolling()
